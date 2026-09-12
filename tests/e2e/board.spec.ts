@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
 
 test('home lists every game', async ({ page }) => {
   await expect(page.locator('.game-name'))
-    .toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש', 'מוקשים', 'סודוקו']);
+    .toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש', 'מוקשים', 'סודוקו', '2048']);
 });
 
 test('a game deals and the board fits without scrolling', async ({ page }) => {

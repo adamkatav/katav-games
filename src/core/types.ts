@@ -1,6 +1,6 @@
 /** Shared contracts. A game describes itself; the engine decides everything else. */
 
-export type GameId = 'klondike' | 'spider' | 'freecell' | 'minesweeper' | 'sudoku';
+export type GameId = 'klondike' | 'spider' | 'freecell' | 'minesweeper' | 'sudoku' | 'g2048';
 
 export interface Difficulty {
   readonly id: string;

@@ -4,10 +4,11 @@ import { freecell } from './cards/freecell';
 import { spider } from './cards/spider';
 import { minesweeper } from './minesweeper/def';
 import { sudoku } from './sudoku/def';
+import { g2048 } from './g2048/def';
 
 /** Add a game here and it appears on the home screen. Nothing else to wire. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const GAMES: ReadonlyArray<GameDef<any>> = [klondike, freecell, spider, minesweeper, sudoku];
+export const GAMES: ReadonlyArray<GameDef<any>> = [klondike, freecell, spider, minesweeper, sudoku, g2048];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const findGame = (id: string): GameDef<any> | undefined =>
@@ -89,6 +90,16 @@ export const HELP_HTML = `
   <li><b>אין הפסד בסודוקו</b> — אפשר תמיד לתקן, ויש ביטול בלי הגבלה.</li>
   <li>בכל חידה יש <b>פתרון אחד בלבד</b>, ואפשר תמיד להגיע אליו בהיגיון.
       <b>💡 רמז</b> ממלא תא אחד ומסביר לפי איזה כלל.</li>
+</ul>
+
+<h3>🔟 2048</h3>
+<ul>
+  <li>המטרה: לחבר מספרים זהים עד שמגיעים לאריח <b>2048</b>.</li>
+  <li>לוחצים על אחד מארבעת החצים שמתחת ללוח — כל האריחים מחליקים לאותו כיוון.</li>
+  <li>שני אריחים זהים שנפגשים מתחברים לאריח אחד בערך כפול.</li>
+  <li>אחרי כל הזזה מופיע אריח חדש. אם אין יותר מקום ואין מה לחבר — הסיבוב נגמר.</li>
+  <li>אפשר גם להשתמש בחצי המקלדת או להחליק עם האצבע, אבל אף פעם לא חייבים.</li>
+  <li>הגעתם ל־2048? אפשר להמשיך לשחק ולנסות להגיע רחוק יותר.</li>
 </ul>
 
 <h3>ניקוד, רצף וכוכבים</h3>
