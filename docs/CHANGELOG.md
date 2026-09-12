@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.9.0 (2026-09-12)
+
+### Feat
+
+- **minesweeper**: add Minesweeper on a new shared grid engine
+
 ## v0.8.2 (2026-09-12)
 
 ### Fix
