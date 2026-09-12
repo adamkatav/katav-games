@@ -97,6 +97,14 @@ button{font-family:inherit;}
   font-size:19px; font-weight:700; white-space:nowrap;
 }
 .stat b{color:var(--gold); font-variant-numeric:tabular-nums;}
+.stat.combo{
+  display:none; background:linear-gradient(#ffca3a,#f0a500); color:#4a2c00;
+  padding:3px 12px; border-radius:20px; box-shadow:0 0 14px rgba(255,197,49,.75);
+  animation:comboBeat .7s ease-in-out infinite;
+}
+.stat.combo.on{display:inline-block;}
+.stat.combo b{color:#4a2c00;}
+@keyframes comboBeat{0%,100%{transform:scale(1);}50%{transform:scale(1.09);}}
 /* flex + margin:auto מרכז את הלוח כשיש מקום, ועדיין מאפשר גלילה תקינה כשאין */
 #boardWrap{flex:1; overflow:auto; position:relative; padding:10px; display:flex;}
 #board{position:relative; margin:auto; direction:ltr; flex:none;}
@@ -151,8 +159,9 @@ button{font-family:inherit;}
 .pop-score{
   position:absolute; font-weight:900; font-size:26px; color:var(--gold);
   text-shadow:0 2px 4px rgba(0,0,0,.7); pointer-events:none; z-index:9500;
-  animation:rise 1.05s ease-out forwards;
+  animation:rise 1.05s ease-out forwards; white-space:nowrap;
 }
+.pop-score.minus{color:#ff9c8f;}
 @keyframes rise{0%{opacity:0; transform:translateY(0) scale(.6);}
                 18%{opacity:1; transform:translateY(-10px) scale(1.15);}
                 100%{opacity:0; transform:translateY(-70px) scale(1);}}
@@ -271,6 +280,7 @@ button{font-family:inherit;}
       <span class="stat">מהלכים <b id="sMoves">0</b></span>
       <span class="stat">זמן <b id="sTime">0:00</b></span>
       <span class="stat" id="sExtraWrap">סדרות <b id="sExtra">0</b>/8</span>
+      <span class="stat combo" id="sComboWrap">רצף <b id="sCombo">×2</b></span>
     </div>
   </div>
   <div id="boardWrap"><div id="board"></div></div>
@@ -333,6 +343,14 @@ button{font-family:inherit;}
 <div class="ov" id="ovSet"><div class="panel">
   <h2>⚙️ הגדרות</h2>
   <div class="opt">
+    <span class="lbl">סימון מקומות אפשריים</span>
+    <div class="seg" data-set="marks">
+      <button data-v="0">כבוי</button>
+      <button data-v="1">מופעל</button>
+    </div>
+    <small style="opacity:.7;font-size:16px">כשמופעל — אחרי לחיצה על קלף, כל המקומות שאפשר להניח אותו בהם נדלקים בזהב.</small>
+  </div>
+  <div class="opt">
     <span class="lbl">גודל הקלפים</span>
     <div class="seg" data-set="size">
       <button data-v="1">רגיל</button>
@@ -367,8 +385,8 @@ button{font-family:inherit;}
     <h3>להזיז קלף</h3>
     <ul>
       <li>לוחצים על קלף — הוא נדלק בזהב.</li>
-      <li>כל המקומות שאפשר להניח בהם את הקלף יהבהבו בזהב.</li>
-      <li>לוחצים על המקום הרצוי — והקלף עובר לשם.</li>
+      <li>לוחצים על המקום שאליו רוצים להעביר אותו — והקלף עובר לשם.</li>
+      <li>אפשר להדליק ב<b>הגדרות</b> סימון שמראה את כל המקומות האפשריים.</li>
       <li>לחיצה נוספת על אותו קלף מבטלת את הבחירה.</li>
       <li>מי שרוצה — אפשר גם פשוט לגרור את הקלף עם העכבר או עם האצבע.</li>
     </ul>
@@ -397,9 +415,12 @@ button{font-family:inherit;}
       <li>אפשר להזיז כמה קלפים יחד רק אם הם <b>ברצף ובאותה צורה</b>.</li>
       <li>לחיצה על החפיסה מחלקת קלף לכל טור — אבל רק כשאין אף טור ריק.</li>
     </ul>
-    <h3>ניקוד וכוכבים</h3>
+    <h3>ניקוד, רצף וכוכבים</h3>
     <ul>
       <li>מקבלים נקודות על כל קלף שמגיע לסיום, על כל קלף שנחשף ועל כל סדרה שמושלמת.</li>
+      <li><b>רצף</b>: כל מהלך שמקדם אתכם מעלה את המכפיל — ×1.5, ×2, ×2.5, ×3 ועד ×4.
+          הצליל עולה עם הרצף. מהלך שלא מקדם שובר אותו.</li>
+      <li>שברתם רצף? לחיצה על <b>ביטול</b> מחזירה אותו — ואפשר לנסות שוב.</li>
       <li>בסוף המשחק מקבלים בין כוכב אחד לחמישה כוכבים — לפי מספר המהלכים והזמן.</li>
     </ul>
   </div>
@@ -424,7 +445,7 @@ const LS = {
   best:k=>'hslt_best_'+k
 };
 
-let ST = {size:1, rtl:1, sound:1};
+let ST = {size:1, rtl:1, sound:1, marks:0};
 try{ Object.assign(ST, JSON.parse(localStorage.getItem(LS.set)||'{}')); }catch(e){}
 function saveSettings(){ try{ localStorage.setItem(LS.set, JSON.stringify(ST)); }catch(e){} }
 
@@ -454,6 +475,12 @@ const SND={
   found:()=>{tone(660,.1,'sine',.17); tone(880,.13,'sine',.15,.07);},
   set  :()=>{[523,659,784,1046].forEach((f,i)=>tone(f,.2,'triangle',.18,i*.08));},
   bad  :()=>tone(150,.13,'sawtooth',.07),
+  // צליל הרצף מטפס עם הדרגה, כך שאפשר לשמוע את הרצף גדל בלי להסתכל
+  combo:lvl=>{
+    const base=392*Math.pow(1.122, Math.min(lvl,9));
+    [0,4,7,12].forEach((s,i)=>tone(base*Math.pow(2,s/12), .2, 'triangle', .15, i*.055));
+  },
+  comboEnd:()=>{ tone(330,.18,'sawtooth',.10); tone(196,.26,'sawtooth',.10,.11); },
   star :i=>tone(700+i*130,.2,'triangle',.16),
   win  :()=>{[523,659,784,1046,1318].forEach((f,i)=>tone(f,.45,'triangle',.2,i*.13));}
 };
@@ -495,7 +522,7 @@ function newKlondike(){
     for(let k=0;k<=c;k++){ const card=deck.pop(); card.u=(k===c); piles['t'+c].push(card); }
   }
   piles.stock=deck;
-  return {game:'klondike', suits:1, piles, score:0, moves:0};
+  return {game:'klondike', suits:1, piles, score:0, moves:0, bonus:0, peak:0, combo:0};
 }
 function newSpider(suits){
   const use = suits===1?[0]: suits===2?[0,1]:[0,1,2,3];
@@ -511,7 +538,7 @@ function newSpider(suits){
     for(let k=0;k<n;k++){ const card=deck.pop(); card.u=(k===n-1); piles['t'+c].push(card); }
   }
   piles.stock=deck;
-  return {game:'spider', suits, piles, score:0, moves:0};
+  return {game:'spider', suits, piles, score:0, moves:0, bonus:0, peak:0, combo:0};
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } }
 
@@ -712,6 +739,7 @@ function drawSelection(){
   if(!sel) return;
   const run = S.piles[sel.pile].slice(sel.idx);
   run.forEach(c=>els[c.i].classList.add('sel'));
+  if(!ST.marks) return;            // סימון היעדים האפשריים — לפי בחירה בהגדרות
   legalTargets(run, sel.pile).forEach(p=>{
     const t=top(p);
     if(t && !(S.game==='spider' && founds().includes(p))) els[t.i].classList.add('target');
@@ -764,14 +792,64 @@ function legalTargets(run, fromPile){
    ביצוע מהלכים + ניקוד
    ========================================================================= */
 function pushUndo(){ undoStack.push(JSON.stringify(S)); if(undoStack.length>500) undoStack.shift(); }
-function addScore(n, pile, idx){
-  S.score+=n;
-  if(n>0 && pile!=null) popScore(n, pile, idx);
+/* הניקוד נגזר אך ורק ממצב הלוח, ולא נצבר מהלך-אחר-מהלך.
+   המשמעות: חזרה לאותו מצב מחזירה בדיוק את אותו ניקוד, ולכן אי אפשר לצבור
+   נקודות בהזזת קלף הלוך ושוב — לא לערימות הסיום ובחזרה, ולא בחיבור ופירוק
+   של רצף באותה צורה. */
+function boardScore(){
+  let hidden=0;
+  tabs().forEach(p=>{ hidden += S.piles[p].filter(c=>!c.u).length; });
+  const revealed = (S.hidden0 - hidden) * 10;   // חשיפת קלף היא חד-כיוונית
+
+  if(S.game==='klondike'){
+    const onFoundations = founds().reduce((n,p)=>n+S.piles[p].length, 0);
+    return revealed + onFoundations*15;
+  }
+  let pairs=0;                                   // זוגות עוקבים באותה צורה
+  tabs().forEach(p=>{
+    const a=S.piles[p];
+    for(let k=1;k<a.length;k++)
+      if(a[k-1].u && a[k].u && a[k].s===a[k-1].s && a[k].r===a[k-1].r-1) pairs++;
+  });
+  const sets = founds().filter(p=>S.piles[p].length===13).length;
+  return revealed + pairs*5 + sets*150;
 }
+
+/* רצף (קומבו): כל מהלך שמקדם את הלוח מעלה את המכפיל, ומהלך שלא מקדם שובר אותו.
+   הבונוס ניתן רק על התקדמות מעבר לכל מה שהושג עד כה (S.peak) — ולא על ההפרש
+   של המהלך עצמו. בלי זה אפשר היה לחבר ולפרק רצף שוב ושוב ולקטוף בונוס בכל פעם.
+   כך הבונוס חסום על ידי ההתקדמות האמיתית במשחק. */
+const COMBO_MULT = [1, 1, 1.5, 2, 2.5, 3, 4];
+const comboMult = n => COMBO_MULT[Math.min(n, COMBO_MULT.length-1)];
+
+/* מעדכן ניקוד ורצף לפי מצב הלוח, ומציג את ההפרש מעל הערימה שהשתנתה */
+function syncScore(pile, idx){
+  const before = S.score;
+  const base = boardScore();
+  const gain = Math.max(0, base - S.peak);      // התקדמות חדשה בלבד
+  S.peak = Math.max(S.peak, base);
+
+  if(gain > 0){
+    S.combo++;
+    const mult = comboMult(S.combo);
+    if(mult > 1) S.bonus += Math.round(gain * (mult - 1));
+    if(S.combo >= 2) SND.combo(S.combo);
+  }else{
+    if(S.combo >= 2) SND.comboEnd();
+    S.combo = 0;
+  }
+
+  S.score = base + S.bonus;
+  const d = S.score - before;
+  if(d && pile!=null) popScore(d, pile, idx);
+  return d;
+}
+
 function popScore(n, pile, idx){
   const pos=cardXY(pile, idx==null?Math.max(0,S.piles[pile].length-1):idx);
   const d=document.createElement('div');
-  d.className='pop-score'; d.textContent='+'+n;
+  d.className='pop-score'+(n<0?' minus':'');
+  d.textContent=(n>0?'+':'')+n;
   d.style.left=(pos.x+CW/2-20)+'px'; d.style.top=(pos.y+CH*0.3)+'px';
   board.appendChild(d);
   setTimeout(()=>d.remove(),1100);
@@ -780,24 +858,20 @@ function popScore(n, pile, idx){
 function doMove(fromPile, idx, destPile, silent){
   const a=S.piles[fromPile];
   const run=a.splice(idx);
+  if(!run.length) return;        // הגנה: לוח תקוע הוא בלתי ניתן לשחזור עבור המשתמש
   S.piles[destPile].push(...run);
   S.moves++;
   startTimer();
 
-  if(S.game==='klondike'){
-    if(destPile[0]==='f'){ addScore(15, destPile); SND.found(); pulse(run[0]); }
-    else if(fromPile==='waste'){ addScore(5, destPile, S.piles[destPile].length-run.length); if(!silent)SND.place(); }
-    else if(!silent) SND.place();
-  }else{
-    const t=S.piles[destPile];
-    const below=t[t.length-run.length-1];
-    if(below && below.s===run[0].s) addScore(5, destPile, t.length-run.length);
-    if(!silent) SND.place();
-  }
+  const landedAt = S.piles[destPile].length-run.length;
+  if(S.game==='klondike' && destPile[0]==='f'){ SND.found(); pulse(run[0]); }
+  else if(!silent) SND.place();
+
   // חשיפת קלף מוסתר
   const nt=top(fromPile);
-  if(nt && !nt.u && fromPile[0]==='t'){ nt.u=true; addScore(10, fromPile); SND.flip(); }
+  if(nt && !nt.u && fromPile[0]==='t'){ nt.u=true; SND.flip(); }
   if(S.game==='spider') checkSets();
+  syncScore(destPile, landedAt);
   afterChange();
 }
 
@@ -813,11 +887,10 @@ function checkSets(){
     const dest=founds().find(f=>S.piles[f].length===0);
     a.splice(a.length-13,13);
     S.piles[dest].push(...seg);
-    addScore(150, dest);
     SND.set();
     seg.forEach(c=>pulse(c));
     const nt=top(p);
-    if(nt && !nt.u){ nt.u=true; addScore(10,p); }
+    if(nt && !nt.u) nt.u=true;
     toast('סדרה הושלמה! 🎉');
   });
 }
@@ -850,7 +923,9 @@ function clickStock(){
       const c=S.piles.stock.pop(); c.u=true; S.piles[p].push(c);
       setTimeout(()=>SND.deal(i), i*45);
     });
-    S.moves++; startTimer(); checkSets(); afterChange();
+    S.moves++; startTimer(); checkSets();
+    syncScore('t0');                 // חלוקה עשויה ליצור רצפים חדשים
+    afterChange();
   }
 }
 
@@ -1050,7 +1125,8 @@ function handleClick(loc){
   if(loc.idx<0){ sel=null; render(); return; }
   const card=S.piles[loc.pile][loc.idx];
   if(!card.u && loc.pile[0]==='t' && loc.idx===S.piles[loc.pile].length-1){
-    pushUndo(); card.u=true; addScore(10, loc.pile); SND.flip(); S.moves++; startTimer(); afterChange(); return;
+    pushUndo(); card.u=true; SND.flip(); S.moves++; startTimer();
+    syncScore(loc.pile); afterChange(); return;
   }
   if(!canGrab(loc.pile, loc.idx)){
     // לחיצה על קלף באמצע רצף — ננסה לבחור את הרצף החוקי הכולל אותו
@@ -1084,7 +1160,8 @@ function checkWin(){
   stopTimer();
   const par=PAR[parKey()];
   const bonus = Math.max(0, Math.round(par.time*2 - T.elapsed*2)) + Math.max(0,(par.moves-S.moves)*3);
-  S.score += bonus;
+  S.bonus += bonus;
+  S.score = boardScore() + S.bonus;
   const q = 0.6*Math.min(1.7, par.moves/Math.max(1,S.moves))
           + 0.4*Math.min(1.7, par.time /Math.max(20,T.elapsed));
   const stars = q>=1.15?5 : q>=0.92?4 : q>=0.72?3 : q>=0.55?2 : 1;
@@ -1174,6 +1251,9 @@ function updateStats(){
   const sp=S.game==='spider';
   $('#sExtraWrap').style.display = sp?'':'none';
   if(sp) $('#sExtra').textContent = founds().filter(f=>S.piles[f].length===13).length;
+  const m = comboMult(S.combo);
+  $('#sComboWrap').classList.toggle('on', m>1);
+  $('#sCombo').textContent = '×'+m;
   $('#btnUndo').disabled = !undoStack.length;
 }
 function saveGame(){
@@ -1209,6 +1289,8 @@ function startGame(game, suits, restore){
     S=restore.S; T.elapsed=restore.t||0; undoStack=restore.u||[];
   }else{
     S = game==='klondike' ? newKlondike() : newSpider(suits);
+    // כמה קלפים מוסתרים יש בפתיחה — הבסיס לחישוב נקודות החשיפה
+    S.hidden0 = tabs().reduce((n,p)=>n+S.piles[p].filter(c=>!c.u).length, 0);
   }
   goto('#game');
   buildDom(); layout();
