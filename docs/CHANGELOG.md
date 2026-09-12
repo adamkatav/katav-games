@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.12.0 (2026-09-12)
+
+### Feat
+
+- **minesweeper**: use the classic Beginner, Intermediate and Expert boards
+
 ## v0.11.0 (2026-09-12)
 
 ### Feat
