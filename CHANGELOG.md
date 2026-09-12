@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.2.0 (2026-09-12)
+
+### Feat
+
+- **score**: break the combo streak when a hint is used
+
 ## v0.1.0 (2026-09-12)
 
 First working version, published at <https://adamkatav.github.io/katav-solitaire/>.
