@@ -156,6 +156,7 @@ button{font-family:inherit;}
 .card.sel .front{outline:calc(var(--cw)*.06) solid var(--gold); outline-offset:-1px; box-shadow:0 0 22px 5px rgba(255,197,49,.75);}
 .card.target .front{outline:calc(var(--cw)*.055) solid var(--gold); animation:pulse 1s infinite;}
 .card.hint .front{animation:hintflash .55s 4;}
+.slot.hint{border-color:var(--gold); background:rgba(255,197,49,.26); animation:pulse 1s 3;}
 @keyframes hintflash{0%,100%{box-shadow:0 2px 5px rgba(0,0,0,.42);}50%{box-shadow:0 0 0 6px var(--gold),0 0 26px 8px rgba(255,197,49,.8);}}
 .card.drag{transition:none; z-index:9000 !important; filter:drop-shadow(0 12px 14px rgba(0,0,0,.5));}
 .card.pop{animation:pop .38s ease;}
@@ -1080,7 +1081,15 @@ function clickStock(){
     S.moves++; startTimer(); afterChange();
   }else{
     if(!S.piles.stock.length){ toast('אין יותר קלפים בחפיסה'); SND.bad(); return; }
-    if(tabs().some(p=>!S.piles[p].length)){ toast('צריך למלא קודם את הטורים הריקים'); SND.bad(); return; }
+    // חוק העכביש: אי אפשר לחלק כשיש טור ריק. מהבהבים את הטורים עצמם —
+    // על לוח רחב קל לפספס איזה טור ריק, והודעה לבדה לא עוזרת.
+    const empties = tabs().filter(p=>!S.piles[p].length);
+    if(empties.length){
+      toast(empties.length===1 ? 'אי אפשר לחלק כשיש טור ריק — צריך למלא אותו קודם'
+                               : 'אי אפשר לחלק כשיש טורים ריקים — צריך למלא אותם קודם');
+      empties.forEach(p=>flashEl(els['slot_'+p]));
+      SND.bad(); return;
+    }
     pushUndo();
     tabs().forEach((p,i)=>{
       const c=S.piles.stock.pop(); c.u=true; S.piles[p].push(c);
