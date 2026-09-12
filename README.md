@@ -70,6 +70,32 @@ Pushing to `main` afterwards redeploys automatically.
 which gives a real app icon and a full-screen window with no address bar or tabs. That's
 worth doing; browser chrome is a common source of confusion.
 
+## Commits and changelog
+
+This repo uses [Conventional Commits](https://www.conventionalcommits.org/), with
+[commitizen](https://commitizen-tools.github.io/commitizen/) run through `uvx` (no
+install needed). Config lives in `.cz.toml`.
+
+```powershell
+uvx --from commitizen cz commit                  # interactive prompt-based commit
+uvx --from commitizen cz check --rev-range HEAD~1..HEAD   # lint a message
+uvx --from commitizen cz bump --yes              # bump version, update CHANGELOG.md, tag
+uvx --from commitizen cz changelog               # regenerate the changelog
+```
+
+Common types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`.
+Scopes used here: `klondike`, `spider`, `score`, `input`, `layout`, `cards`, `anim`,
+`hint`, `save`, `pwa`, `a11y`.
+
+`cz bump` reads the commits since the last tag, works out the version increment and
+prepends to `CHANGELOG.md` — so the changelog is only as good as the commit messages.
+
+> **Windows gotcha:** don't write a commit-message file with
+> `Set-Content -Encoding utf8` in Windows PowerShell 5.1 — it prepends a BOM and
+> `cz check` then rejects even a valid message. Use
+> `[IO.File]::WriteAllText($path, $msg, (New-Object Text.UTF8Encoding $false))`,
+> or just pass `git commit -m`.
+
 ## Layout
 
 ```
