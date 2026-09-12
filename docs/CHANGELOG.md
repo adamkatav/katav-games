@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.10.0 (2026-09-12)
+
+### Feat
+
+- **sudoku**: add Sudoku with uniqueness-checked generation
+
 ## v0.9.0 (2026-09-12)
 
 ### Feat
