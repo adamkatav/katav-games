@@ -1,7 +1,7 @@
 import type {
   Difficulty, GameDef, GameId, GameView, Hint, Par, Rng, ToolbarButton, ViewHost,
 } from '../../core/types';
-import { cellAt, cellPosition, computeGridGeometry, type GridGeometry } from './layout';
+import { cellPosition, computeGridGeometry, type GridGeometry } from './layout';
 
 /** How one cell should look right now. Games return this; the view draws it. */
 export interface CellView {
@@ -168,13 +168,14 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
   }
 
   function attachInput(): void {
+    // Read the cell off the event target rather than hit-testing coordinates.
+    // Grid cells are real elements that already know their index, so this is
+    // exact, needs no RTL arithmetic, and works for synthetic clicks too.
     grid.addEventListener('click', (e) => {
-      if (!geometry) return;
-      const rect = grid.getBoundingClientRect();
-      const { cols, rows } = dims();
-      const index = cellAt(geometry, cols, rows,
-        e.clientX - rect.left, e.clientY - rect.top, host.settings.rtl);
-      if (index !== null) spec.onCell(host.state, index, host);
+      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('.cell');
+      const raw = el?.dataset['i'];
+      if (raw === undefined) return;
+      spec.onCell(host.state, Number(raw), host);
     });
   }
 

@@ -32,7 +32,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('home lists every game', async ({ page }) => {
-  await expect(page.locator('.game-name')).toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש']);
+  await expect(page.locator('.game-name'))
+    .toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש', 'מוקשים']);
 });
 
 test('a game deals and the board fits without scrolling', async ({ page }) => {
@@ -133,6 +134,31 @@ test('a card can be placed on an empty column by clicking', async ({ page }) => 
     return { t0: s.session.state.piles['t0']!.length, t1: s.session.state.piles['t1']!.length };
   });
   expect(after, 'the card must land in the empty column').toEqual({ t0: 0, t1: 1 });
+});
+
+test('minesweeper: first click is safe and the mode switch works', async ({ page }) => {
+  await start(page, 'minesweeper', 'easy');
+  expect(await page.locator('.cell').count()).toBe(64);
+
+  // No undo button: a revealed cell cannot honestly be taken back.
+  await expect(page.locator('.bar .btn', { hasText: 'ביטול' })).toHaveCount(0);
+
+  await page.locator('.cell').nth(27).click();
+  const opened = await page.evaluate(() => {
+    const s = (window as unknown as {
+      __shell: { session: { state: { revealed: boolean[]; dead: number | null; started: boolean } } };
+    }).__shell.session.state;
+    return { revealed: s.revealed.filter(Boolean).length, dead: s.dead, started: s.started };
+  });
+  expect(opened.started).toBe(true);
+  expect(opened.dead, 'the first click must never be a mine').toBeNull();
+  expect(opened.revealed).toBeGreaterThan(1);   // a cascade, not a single cell
+
+  const flagBtn = page.locator('.bar .btn', { hasText: 'דגל' });
+  await flagBtn.click();
+  await expect(flagBtn).toHaveClass(/active/);
+  await page.locator('.cell.hidden').first().click();
+  await expect(page.locator('.cell.flag')).toHaveCount(1);
 });
 
 test('settings persist across a reload', async ({ page }) => {

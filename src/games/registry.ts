@@ -2,10 +2,11 @@ import type { GameDef } from '../core/types';
 import { klondike } from './cards/klondike';
 import { freecell } from './cards/freecell';
 import { spider } from './cards/spider';
+import { minesweeper } from './minesweeper/def';
 
 /** Add a game here and it appears on the home screen. Nothing else to wire. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const GAMES: ReadonlyArray<GameDef<any>> = [klondike, freecell, spider];
+export const GAMES: ReadonlyArray<GameDef<any>> = [klondike, freecell, spider, minesweeper];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const findGame = (id: string): GameDef<any> | undefined =>
@@ -56,6 +57,22 @@ export const HELP_HTML = `
   <li>מניחים קלף על קלף שגדול ממנו באחד — בכל צורה שהיא.</li>
   <li>אפשר להזיז כמה קלפים יחד רק אם הם <b>ברצף ובאותה צורה</b>.</li>
   <li>לחיצה על החפיסה מחלקת קלף לכל טור — אבל רק כשאין אף טור ריק.</li>
+</ul>
+
+<h3>💣 מוקשים</h3>
+<ul>
+  <li>המטרה: לחשוף את כל התאים שאין בהם מוקש.</li>
+  <li>המספר בתא אומר כמה מוקשים נמצאים בשמונת התאים שסביבו.</li>
+  <li>בסרגל למעלה בוחרים מה לחיצה עושה: <b>⛏️ חשיפה</b> או <b>🚩 דגל</b>.
+      אין צורך בלחיצה ימנית.</li>
+  <li><b>הלחיצה הראשונה תמיד בטוחה</b>, והלוח נבנה כך שתמיד אפשר לפתור אותו
+      בהיגיון — בלי לנחש אף פעם.</li>
+  <li>אם פגעתם במוקש הסיבוב נגמר. זה חלק מהמשחק — אבל זה תמיד בגלל החלטה,
+      אף פעם לא בגלל מזל.</li>
+  <li>אין כאן כפתור ביטול: אי אפשר להחזיר תא שנחשף. דגל לעומת זאת אפשר פשוט
+      להוריד בלחיצה נוספת.</li>
+  <li><b>💡 רמז</b> מצביע על תא שאפשר להוכיח, ואומר לפי איזה כלל — כדי ללמוד,
+      לא רק כדי להינצל.</li>
 </ul>
 
 <h3>ניקוד, רצף וכוכבים</h3>
