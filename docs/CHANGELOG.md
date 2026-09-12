@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.8.2 (2026-09-12)
+
+### Fix
+
+- **layout**: resize the cards again as columns deepen
+
 ## v0.8.1 (2026-09-12)
 
 ### Fix
