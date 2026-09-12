@@ -1,4 +1,4 @@
-name: tests
+name: ci
 
 on:
   push:
@@ -6,31 +6,49 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
 
-      - name: Install Playwright
-        run: |
-          npm init -y >/dev/null
-          npm install --no-save playwright@^1.47
-          npx playwright install --with-deps chromium
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npx vite build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npx playwright test
 
-      - name: Serve the repo
-        run: |
-          python3 -m http.server 8791 --bind 127.0.0.1 &
-          for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:8791/index.html >/dev/null && break
-            sleep 1
-          done
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: dist
 
-      - name: Run the suite
-        run: node tests/ci.js
-        env:
-          TEST_URL: http://127.0.0.1:8791/tests/run.html
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

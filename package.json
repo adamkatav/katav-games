@@ -1,0 +1,25 @@
+{
+  "name": "katav-solitaire",
+  "version": "0.7.1",
+  "private": true,
+  "type": "module",
+  "description": "Hebrew card games built for one elderly player — the Katav family game box",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "art": "uv run --with pillow python tools/optimize_art.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^22.20.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vite-plugin-pwa": "^1.0.3",
+    "vitest": "^3.2.4"
+  }
+}
