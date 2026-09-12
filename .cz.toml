@@ -5,5 +5,5 @@ tag_format = "v$version"
 version_files = ["index.html:APP_VERSION"]
 update_changelog_on_bump = true
 changelog_incremental = true
-changelog_file = "CHANGELOG.md"
+changelog_file = "docs/CHANGELOG.md"
 major_version_zero = true

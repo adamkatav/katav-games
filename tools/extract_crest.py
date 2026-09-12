@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ART = ROOT / "art"
 GOLD = (212, 175, 55)
 
-sheet = next(ART.glob("Gemini_Generated_Image_*.jpg"))
+sheet = ART / "source" / "gemini-sheet.jpg"
 img = Image.open(sheet).convert("RGB")
 W, H = img.size
 quad = img.crop((W // 2, H // 2, W, H))

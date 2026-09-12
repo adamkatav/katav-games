@@ -1,114 +1,111 @@
-# משחקי קלפים — Hebrew Solitaire
+# משחקי קלפים — Katav game box
 
-Klondike (סוליטר) and Spider (סוליטר עכביש) in Hebrew, built for an elderly player.
-One self-contained HTML file (~190 KB), works offline, no install, no accounts.
+Hebrew card games built for one player: an elderly speaker, head of the Katav family, on
+a Windows PC and a phone. Currently Klondike (סוליטר) and Spider (סוליטר עכביש), in one
+self-contained HTML file that works offline.
+
+**▶ Play: <https://adamkatav.github.io/katav-solitaire/>**
+
+---
 
 ## Running it
 
-**Locally** — double-click `index.html`. That's it. Everything (code, card artwork,
-sounds) is embedded in that one file, so it works with no internet connection and can be
-copied anywhere on its own.
+**Locally** — double-click `index.html`. Everything (code, artwork, sounds) is embedded in
+that one file, so it works with no internet and can be copied anywhere on its own.
 
 To put it on someone's desktop: right-click `index.html` → Send to → Desktop (create
-shortcut), then rename the shortcut to `קלפים` and give it a card icon.
+shortcut), rename it `קלפים`, and give it the crest icon.
 
-**On the web** — see "GitHub Pages" below.
+**Installed** — open the URL above in Edge or Chrome and choose **Install app**. That gives
+a real desktop icon and a full-screen window with no address bar or tabs, which is worth
+doing: browser chrome is a common source of confusion.
 
-## Design
+## Repository layout
 
-[DESIGN.md](DESIGN.md) holds the game box's design principles — the rules that make these
-games feel like one product, and the checklist for adding another one (Minesweeper,
-Memory, FreeCell) so it arrives feeling like it came from the same box.
+```
+index.html              the whole game — open this
+manifest.json           lets browsers install it as an app
+icon.svg                app icon (generated from the crest)
 
-## Design decisions
+docs/
+  DESIGN.md             design principles for the game box — read before adding a game
+  GAMES.md              roadmap: Minesweeper and Sudoku generation, plus what else fits
+  CHANGELOG.md          maintained by commitizen
+  ART-PROMPTS.md        the image prompts the card art was generated from
 
-These were deliberate, for an 80-something player on a Windows PC and a phone:
+art/                    source artwork, embedded into index.html (not loaded at runtime)
+  source/               the original generated sheet, kept for re-cutting
 
-- **Tap-to-move, not drag.** Tap a card and it lights up gold; every legal destination
-  pulses gold; tap one to move. Dragging still works for anyone who prefers it, but
-  nothing *requires* holding a button down while aiming — that's the part that's hard
-  with tremor or an unfamiliar mouse.
-- **No failure states.** No timer pressure, no "you lost", unlimited undo, a hint button.
-  The star rating at the end is generous on purpose.
-- **Everything visible.** No hamburger menu, no icon-only buttons, no long-press, no
-  right-click, no double-click requirement. Every action is a labelled button on screen.
-- **Autosave.** Closing the window mid-game loses nothing; reopening offers "המשך משחק".
-- **Fan spacing is fixed for the whole game.** It's computed from a typical worst-case
-  column rather than the current board, so card spacing doesn't shift under you after
-  every move. It compresses only as far as the rank in the corner stays fully readable;
-  past that the board scrolls instead of clipping.
-- **Red and black only**, big jumbo indices in *both* top corners so the rank is readable
-  whichever way a column fans.
+tools/                  re-cut, compress and re-embed the artwork; build the icon
+tests/                  browser test suite + headless CI runner
+.github/workflows/      runs the suite on every push
+```
 
-## The card art
+## Tests
+
+Open **`tests/run.html`** in any browser. No tooling, no install — it loads the game in an
+iframe and prints a pass/fail list. The page title becomes `PASS (n)` or `FAIL (n)`.
+
+The same suite runs headlessly in CI on every push (`.github/workflows/tests.yml`). To run
+it that way locally you need Node:
+
+```bash
+npm install --no-save playwright && npx playwright install chromium
+python -m http.server 8791          # in another terminal
+node tests/ci.js
+```
+
+Tests reach the game through a seam exposed only when the page is loaded with `?test=1`,
+so the normal game carries no debug surface.
+
+## Artwork
 
 `art/` holds the source PNGs, generated with Gemini from the prompts in
-`ART-PROMPTS.md`. One figure per rank (J/Q/K) is shared across all four suits — exactly
-how a real deck works, where only the index and pip change colour. The back is the Katav
-family crest.
+[docs/ART-PROMPTS.md](docs/ART-PROMPTS.md). One court figure per rank is shared across all
+four suits — exactly how a real deck works, where only the index and pip change colour.
+The back is the Katav family crest.
 
 To change the artwork:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\slice-art.ps1    # only if re-cutting a 2x2 sheet
-& "$env:USERPROFILE\.local\bin\uv.exe" run --with pillow python tools\optimize_art.py
-powershell -ExecutionPolicy Bypass -File tools\embed-art.ps1    # re-embeds into index.html
+powershell -ExecutionPolicy Bypass -File tools\slice-art.ps1     # re-cut the 2x2 sheet
+uv run --with pillow python tools\rebuild_back.py                # centre the card back
+uv run --with pillow python tools\extract_crest.py               # crest for effects
+uv run --with pillow python tools\make_icon.py                   # app icon
+uv run --with pillow python tools\optimize_art.py                # quantise
+powershell -ExecutionPolicy Bypass -File tools\embed-art.ps1     # embed into index.html
 ```
 
-`optimize_art.py` quantises the flat vector-style art to a small palette — it takes the
-four PNGs from ~1.1 MB down to ~100 KB with no visible loss, which is what keeps the
+`optimize_art.py` matters: it quantises the flat vector-style art to a small palette,
+taking the assets from ~1.1 MB to ~100 KB with no visible loss. That is what keeps the
 single embedded file small.
-
-## GitHub Pages
-
-The repo lives at `git@github.com:adamkatav/katav-solitaire.git`.
-
-To publish: in the repo on GitHub go to
-**Settings → Pages → Source: Deploy from a branch → `main` / `(root)` → Save**.
-
-It goes live within a minute or two at:
-
-**https://adamkatav.github.io/katav-solitaire/**
-
-Pushing to `main` afterwards redeploys automatically.
-
-`manifest.json` is already set up, so from that URL Chrome/Edge offers **Install app** —
-which gives a real app icon and a full-screen window with no address bar or tabs. That's
-worth doing; browser chrome is a common source of confusion.
 
 ## Commits and changelog
 
-This repo uses [Conventional Commits](https://www.conventionalcommits.org/), with
-[commitizen](https://commitizen-tools.github.io/commitizen/) run through `uvx` (no
-install needed). Config lives in `.cz.toml`.
+[Conventional Commits](https://www.conventionalcommits.org/), with
+[commitizen](https://commitizen-tools.github.io/commitizen/) via `uvx`. Config in
+`.cz.toml`.
 
 ```powershell
-uvx --from commitizen cz commit                  # interactive prompt-based commit
-uvx --from commitizen cz check --rev-range HEAD~1..HEAD   # lint a message
-uvx --from commitizen cz bump --yes              # bump version, update CHANGELOG.md, tag
-uvx --from commitizen cz changelog               # regenerate the changelog
+uvx --from commitizen cz commit      # interactive
+uvx --from commitizen cz bump --yes  # bump version, update changelog, tag
 ```
 
-Common types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`.
-Scopes used here: `klondike`, `spider`, `score`, `input`, `layout`, `cards`, `anim`,
-`hint`, `save`, `pwa`, `a11y`.
+Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`.
+Scopes: `klondike`, `spider`, `score`, `input`, `layout`, `cards`, `anim`, `hint`, `save`,
+`pwa`, `a11y`, `ui`, `game`.
 
-`cz bump` reads the commits since the last tag, works out the version increment and
-prepends to `CHANGELOG.md` — so the changelog is only as good as the commit messages.
+`cz bump` also rewrites `APP_VERSION` in `index.html` (via `version_files`), so the version
+shown on screen can never drift from the tag.
 
-> **Windows gotcha:** don't write a commit-message file with
-> `Set-Content -Encoding utf8` in Windows PowerShell 5.1 — it prepends a BOM and
-> `cz check` then rejects even a valid message. Use
-> `[IO.File]::WriteAllText($path, $msg, (New-Object Text.UTF8Encoding $false))`,
-> or just pass `git commit -m`.
+> **Windows gotcha:** don't write a commit-message file with `Set-Content -Encoding utf8`
+> in PowerShell 5.1 — it prepends a BOM and `cz check` then rejects even a valid message.
+> Use `[IO.File]::WriteAllText($p, $msg, (New-Object Text.UTF8Encoding $false))`, and avoid
+> double quotes in `git commit -m` on Windows, where they break argv splitting.
 
-## Layout
+## Adding a game
 
-```
-index.html      the whole game — open this
-manifest.json   lets browsers install it as an app
-icon.svg        app icon
-art/            source artwork (embedded into index.html, not loaded at runtime)
-tools/          scripts to re-cut, compress and re-embed the artwork
-ART-PROMPTS.md  the Gemini prompts used to generate the art
-```
+Read [docs/DESIGN.md](docs/DESIGN.md) first — it is the rules that make these feel like one
+product, with the reasoning attached so the deliberate-looking oddities don't get undone.
+[docs/GAMES.md](docs/GAMES.md) has the roadmap and the generation algorithms for the next
+two.

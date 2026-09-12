@@ -17,7 +17,7 @@ ART = ROOT / "art"
 CARD_W, CARD_H = 300, 435          # exactly the 100x145 card ratio
 INSET = 0.94                       # frame fills this much of the card, centred
 
-sheet = next(ART.glob("Gemini_Generated_Image_*.jpg"))
+sheet = ART / "source" / "gemini-sheet.jpg"
 img = Image.open(sheet).convert("RGB")
 W, H = img.size
 quad = img.crop((W // 2, H // 2, W, H))            # back is the bottom-right cell

@@ -100,7 +100,7 @@ function Export-Part {
   $quad.Dispose(); $keyed.Dispose(); $trimmed.Dispose(); $out.Dispose()
 }
 
-$src = Get-ChildItem "art\Gemini_Generated_Image_*.jpg" | Select-Object -First 1
+$src = Get-Item "art\source\gemini-sheet.jpg"
 $sheet = [Drawing.Bitmap]::FromFile($src.FullName)
 "sheet: $($sheet.Width)x$($sheet.Height)"
 
