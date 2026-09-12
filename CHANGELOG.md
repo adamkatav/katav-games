@@ -8,6 +8,17 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.3.0 (2026-09-12)
+
+### Feat
+
+- **game**: column-clear reward, double-click up, kinder streak rule
+- **cards**: extract the family crest as a standalone asset
+
+### Fix
+
+- **cards**: centre the crest on the card back
+
 ## v0.2.0 (2026-09-12)
 
 ### Feat
