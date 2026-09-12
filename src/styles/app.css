@@ -47,27 +47,61 @@ body {
 .btn.wide small { font-size: 16px; font-weight: 600; opacity: .85; }
 
 /* ── home ───────────────────────────────────────────────────────────────── */
-.home { align-items: center; justify-content: center; overflow: auto; padding: 24px 16px 46px; }
-.home-wrap { width: 100%; max-width: 640px; margin: auto; text-align: center; }
-.title { margin: 0 0 6px; font-size: clamp(38px, 9vw, 64px); font-weight: 800; text-shadow: 0 4px 0 rgb(0 0 0 / 28%); }
-.subtitle { margin: 0 0 26px; font-size: clamp(18px, 4.2vw, 24px); opacity: .9; }
+/* Sized so it fits by construction. The grid takes whatever height is left and
+   divides it between the rows, so adding a game shrinks the tiles rather than
+   pushing the page into a scrollbar. */
+.home { overflow: hidden; padding: clamp(10px, 2.5vh, 24px) 16px; }
+.home-wrap {
+  display: flex; flex-direction: column; gap: clamp(8px, 1.6vh, 18px);
+  width: 100%; max-width: 900px; height: 100%; margin: auto; text-align: center;
+}
+.title {
+  margin: 0; font-weight: 800; text-shadow: 0 4px 0 rgb(0 0 0 / 28%);
+  font-size: clamp(26px, min(8vw, 6vh), 56px); line-height: 1.1;
+}
+.subtitle { margin: 0; font-size: clamp(14px, min(3.6vw, 2.4vh), 22px); opacity: .9; }
+
+/* Fixed column counts rather than auto-fit: with six games, auto-fit produced
+   five across and a lone tile on its own row. Two or three divide evenly. */
+.game-grid {
+  flex: 1; min-height: 0; display: grid; gap: clamp(8px, 1.4vh, 16px);
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+}
+@media (min-width: 700px) {
+  .game-grid { grid-template-columns: repeat(3, 1fr); }
+}
 
 .game-card {
-  display: flex; align-items: center; gap: 18px; width: 100%; margin-bottom: 16px;
-  padding: 20px 22px; direction: rtl; text-align: right; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; min-width: 0; min-height: 0; padding: 6px 10px;
+  direction: rtl; text-align: center; cursor: pointer; overflow: hidden;
   color: var(--ink); background: linear-gradient(180deg, #fff, #eef3f7);
-  border: none; border-radius: 20px;
-  box-shadow: 0 6px 0 #b9c6cf, 0 10px 22px rgb(0 0 0 / 32%);
+  border: none; border-radius: clamp(12px, 2vh, 20px);
+  box-shadow: 0 5px 0 #b9c6cf, 0 8px 18px rgb(0 0 0 / 30%);
   transition: transform .1s, box-shadow .1s;
 }
-.game-card:active { transform: translateY(5px); box-shadow: 0 1px 0 #b9c6cf, 0 4px 10px rgb(0 0 0 / 30%); }
-.game-emoji { font-size: 46px; line-height: 1; }
-.game-text { flex: 1; display: block; }
-.game-name, .game-blurb, .game-best { display: block; }
-.game-name { font-size: 30px; font-weight: 800; }
-.game-blurb { margin-top: 3px; font-size: 18px; opacity: .72; }
-.game-best { margin-top: 4px; font-size: 16px; font-weight: 700; color: #8a6d00; }
-.home-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
+.game-card:active { transform: translateY(4px); box-shadow: 0 1px 0 #b9c6cf, 0 4px 10px rgb(0 0 0 / 30%); }
+.game-card.resume { grid-column: 1 / -1; flex-direction: row; gap: 12px; }
+
+.game-emoji { font-size: clamp(24px, min(7vw, 5vh), 44px); line-height: 1; }
+.game-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.game-name { font-size: clamp(15px, min(4.4vw, 2.9vh), 27px); font-weight: 800; line-height: 1.15; }
+.game-best { font-size: clamp(11px, min(3vw, 1.9vh), 16px); font-weight: 700; color: #8a6d00; }
+
+/* The blurb is the first thing to go: on a phone the tiles are two to a row and
+   there is no room for a sentence under the name. */
+.game-blurb { display: none; font-size: clamp(11px, 1.9vh, 17px); opacity: .72; line-height: 1.25; }
+@media (min-width: 700px) and (min-height: 560px) {
+  .game-blurb { display: block; }
+}
+
+.home-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+/* Keep these two on one line on a phone, and clear of the byline. */
+@media (max-width: 560px) {
+  .home-row .btn { padding: 10px 13px; font-size: 17px; gap: 6px; }
+  .home-wrap { padding-bottom: 18px; }
+}
 
 .byline {
   position: fixed; bottom: 10px; left: 14px; direction: ltr;

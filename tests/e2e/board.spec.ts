@@ -36,6 +36,25 @@ test('home lists every game', async ({ page }) => {
     .toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש', 'מוקשים', 'סודוקו', '2048']);
 });
 
+test('home never scrolls, at any size', async ({ page }) => {
+  // The home screen is the one place that must always fit: adding a game has to
+  // shrink the tiles rather than push the page into a scrollbar.
+  for (const size of [
+    { width: 360, height: 640 },    // small phone
+    { width: 375, height: 812 },    // tall phone
+    { width: 812, height: 375 },    // phone on its side
+    { width: 1280, height: 800 },   // desktop
+  ]) {
+    await page.setViewportSize(size);
+    await page.waitForTimeout(250);
+    const scrolls = await page.evaluate(() => {
+      const home = document.querySelector('.home')!;
+      return home.scrollHeight > home.clientHeight + 1;
+    });
+    expect(scrolls, `home must fit at ${size.width}x${size.height}`).toBe(false);
+  }
+});
+
 test('a game deals and the board fits without scrolling', async ({ page }) => {
   for (const [id, difficulty] of [['klondike'], ['freecell'], ['spider', '1']] as const) {
     await start(page, id, difficulty);

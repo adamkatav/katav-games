@@ -10,6 +10,11 @@ uvx --from commitizen cz changelog      # regenerate without bumping
 
 ## v0.12.1 (2026-09-12)
 
+### Feat
+
+- **minesweeper**: classic fast controls — right-click to flag, and click a satisfied
+  number to chord. Both accelerators; the mode switch still reaches everything.
+
 ### Fix
 
 - show hint messages, record high scores, and unreverse 2048

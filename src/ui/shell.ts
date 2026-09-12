@@ -44,29 +44,35 @@ export function createShell(root: HTMLElement, version: string): void {
       h('h1', { class: 'title' }, T.appName),
       h('p', { class: 'subtitle' }, T.chooseGame));
 
+    // A grid rather than a list: with six games a stacked list cannot fit a
+    // phone, and the home screen is the one place that must never scroll.
+    const grid = h('div', { class: 'game-grid' });
+
     const resumable = GAMES
       .map((def) => ({ def, save: loadRound(def.id) }))
       .find((x): x is { def: AnyDef; save: SavedRound } => x.save !== null);
 
     if (resumable) {
       const { def, save } = resumable;
-      wrap.append(gameCard(
+      const card = gameCard(
         '▶️', T.resume,
-        `${def.name} · ${T.score} ${save.score.total} · ${formatTime(save.seconds)}`,
+        `${def.name} · ${save.score.total} · ${formatTime(save.seconds)}`,
         null, () => start(def, save.difficulty, save),
-      ));
+      );
+      card.classList.add('resume');       // spans the full width
+      grid.append(card);
     }
 
     for (const def of GAMES) {
       const best = bestFor(def);
-      wrap.append(gameCard(
+      grid.append(gameCard(
         def.emoji, def.name, def.blurb,
-        best > 0 ? `🏆 ${T.best}: ${best.toLocaleString('he-IL')}` : null,
+        best > 0 ? `🏆 ${best.toLocaleString('he-IL')}` : null,
         () => pickDifficulty(def),
       ));
     }
 
-    wrap.append(h('div', { class: 'home-row' },
+    wrap.append(grid, h('div', { class: 'home-row' },
       button(T.howToPlay, '❓', showHelp, 'ghost'),
       button(T.settings, '⚙️', showSettings, 'ghost')));
 
