@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.5.0 (2026-09-12)
+
+### Feat
+
+- **input**: explain in Hebrew why a move was refused
+
 ## v0.4.0 (2026-09-12)
 
 ### Feat
