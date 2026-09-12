@@ -57,7 +57,8 @@ button{font-family:inherit;}
 .screen.on{display:flex;}
 
 /* ---------- home ---------- */
-#home{align-items:center; justify-content:center; overflow:auto; padding:24px 16px;}
+/* padding-bottom משאיר מקום לשורת הגרסה כדי שלא תכסה את הכפתור התחתון */
+#home{align-items:center; justify-content:center; overflow:auto; padding:24px 16px 46px;}
 .home-wrap{width:100%; max-width:640px; text-align:center; margin:auto;}
 .title{
   font-size:clamp(38px,9vw,64px); font-weight:800; margin:0 0 6px;
@@ -80,6 +81,11 @@ button{font-family:inherit;}
 .gamecard .best{font-size:16px; color:#8a6d00; font-weight:700; margin-top:4px;}
 .gamecard .best:empty{display:none;}
 .home-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
+.byline{
+  position:fixed; left:14px; bottom:10px; direction:ltr;
+  font-size:13px; letter-spacing:.3px; color:rgba(255,255,255,.42);
+  pointer-events:none; user-select:none;
+}
 
 /* ---------- game screen ---------- */
 #game{background:transparent;}
@@ -292,6 +298,7 @@ button{font-family:inherit;}
       <button class="btn ghost" id="btnSetHome"><span class="ico">⚙️</span> הגדרות</button>
     </div>
   </div>
+  <div class="byline" id="byline"></div>
 </div>
 
 <!-- ============ GAME ============ -->
@@ -466,6 +473,8 @@ button{font-family:inherit;}
 /* =========================================================================
    הגדרות ונתונים בסיסיים
    ========================================================================= */
+const APP_VERSION = "0.3.0";   // מתעדכן אוטומטית ע"י `cz bump` (ראו .cz.toml)
+
 const SUITS = ['♠','♥','♦','♣'];
 const RANK_TXT = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const INK = '#151515', RED = '#c8102e';       // שחור ואדום קלאסיים בלבד
@@ -1497,6 +1506,7 @@ addEventListener('keydown', e=>{
   if(e.key==='h') showHint();
 });
 
+$('#byline').textContent = 'v' + APP_VERSION + ' · by Adam Katav';
 refreshBest();
 })();
 </script>
