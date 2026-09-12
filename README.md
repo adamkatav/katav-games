@@ -55,13 +55,16 @@ single embedded file small.
 
 ## GitHub Pages
 
-```bash
-git remote add origin https://github.com/<user>/hebrew-solitaire.git
-git push -u origin main
-```
+The repo lives at `git@github.com:adamkatav/katav-solitaire.git`.
 
-Then in the repo: **Settings → Pages → Source: Deploy from a branch → `main` / `(root)`**.
-It goes live at `https://<user>.github.io/hebrew-solitaire/` within a minute or two.
+To publish: in the repo on GitHub go to
+**Settings → Pages → Source: Deploy from a branch → `main` / `(root)` → Save**.
+
+It goes live within a minute or two at:
+
+**https://adamkatav.github.io/katav-solitaire/**
+
+Pushing to `main` afterwards redeploys automatically.
 
 `manifest.json` is already set up, so from that URL Chrome/Edge offers **Install app** —
 which gives a real app icon and a full-screen window with no address bar or tabs. That's
