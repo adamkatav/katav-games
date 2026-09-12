@@ -57,6 +57,12 @@ docs/           ARCHITECTURE · DESIGN · GAMES · CHANGELOG · ART-PROMPTS
 legacy/         the original single-file version, kept for reference
 ```
 
+## Before you change anything
+
+[CLAUDE.md](CLAUDE.md) is the working brief: the engine seam, the rules that keep the
+games feeling like one product, and the traps this repo has already fallen into —
+several of them twice. It is short and worth reading first.
+
 ## How a game is put together
 
 A game supplies a `GameDef`: `create`, `score`, `isWon`, `hint`, `par`, plus a view. It
