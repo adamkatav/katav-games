@@ -11,11 +11,19 @@ import {
  * id instead of repainting a grid of cells.
  */
 
-const ARROWS: ReadonlyArray<{ dir: Direction; icon: string; label: string }> = [
-  { dir: 'up', icon: '↑', label: 'למעלה' },
-  { dir: 'left', icon: '→', label: 'ימינה' },   // visual arrows are mirrored in RTL
-  { dir: 'right', icon: '←', label: 'שמאלה' },
-  { dir: 'down', icon: '↓', label: 'למטה' },
+/**
+ * The grid is never mirrored for RTL — unlike a card tableau it has no reading
+ * direction, and mirroring it inverted every control: pressing ArrowLeft slid
+ * the tiles visually right. Left is left.
+ *
+ * `area` places each button in a D-pad, which also keeps the layout from being
+ * flipped by the surrounding RTL document.
+ */
+const ARROWS: ReadonlyArray<{ dir: Direction; icon: string; label: string; area: string }> = [
+  { dir: 'up', icon: '↑', label: 'למעלה', area: '1 / 2 / 2 / 3' },
+  { dir: 'left', icon: '←', label: 'שמאלה', area: '2 / 1 / 3 / 2' },
+  { dir: 'down', icon: '↓', label: 'למטה', area: '2 / 2 / 3 / 3' },
+  { dir: 'right', icon: '→', label: 'ימינה', area: '2 / 3 / 3 / 4' },
 ];
 
 export const g2048: GameDef<G2048State> = {
@@ -46,8 +54,8 @@ export const g2048: GameDef<G2048State> = {
       if (!best || gained > best.gained) best = { dir, gained };
     }
     if (!best) return null;
-    const label = ARROWS.find((a) => a.dir === best!.dir)!.label;
-    return { kind: 'cell', index: 0, message: `נסו להחליק ${label}` };
+    const arrow = ARROWS.find((a) => a.dir === best!.dir)!;
+    return { kind: 'cell', index: 0, message: `נסו להזיז ${arrow.label} ${arrow.icon}` };
   },
 
   par: () => ({ moves: 250, time: 600 }),
@@ -91,12 +99,13 @@ function createBoardView(host: ViewHost<G2048State>): GameView<G2048State> {
   function buildPad(): HTMLElement {
     const el = document.createElement('div');
     el.className = 'pad g2048-pad';
-    for (const { dir, icon, label } of ARROWS) {
+    for (const { dir, icon, label, area } of ARROWS) {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = icon;
       b.title = label;
       b.setAttribute('aria-label', label);
+      b.style.gridArea = area;
       b.addEventListener('click', () => move(dir));
       el.append(b);
     }
@@ -180,8 +189,7 @@ function createBoardView(host: ViewHost<G2048State>): GameView<G2048State> {
       }
       const col = tile.at % SIZE;
       const row = Math.floor(tile.at / SIZE);
-      const x = host.settings.rtl ? geometry.width - geometry.cell - col * step : col * step;
-      el.style.transform = `translate(${x}px,${row * step}px)`;
+      el.style.transform = `translate(${col * step}px,${row * step}px)`;
       el.textContent = String(tile.value);
       el.className = `tile v${Math.min(tile.value, 4096)}` +
         (tile.born ? ' born' : '') + (tile.merged ? ' merged' : '');

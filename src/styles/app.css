@@ -349,5 +349,5 @@ body {
 .tile.v2048 { background: var(--navy); font-size: calc(var(--cell) * .3);
   box-shadow: 0 0 18px rgb(255 197 49 / 70%); }
 .tile.v4096 { background: #0f1a44; font-size: calc(var(--cell) * .3); }
-.g2048-pad { grid-template-columns: repeat(4, auto); }
+.g2048-pad { grid-template-columns: repeat(3, auto); direction: ltr; }
 .g2048-pad button { min-width: 64px; font-size: 28px; }

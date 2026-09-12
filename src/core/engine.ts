@@ -98,6 +98,19 @@ export class Session<S> implements ViewHost<S> {
     return this.difficulty ? `${this.def.id}:${this.difficulty}` : this.def.id;
   }
 
+  /**
+   * Record the score if it beats the stored best. Called when a round finishes
+   * and also when one is abandoned — otherwise a personal best would only ever
+   * come from a completed game, and finishing a Spider deal is rare enough that
+   * the number would sit at zero forever.
+   */
+  recordBest(): boolean {
+    const previous = this.deps.readBest(this.bestKey);
+    if (this.score.total <= previous) return false;
+    this.deps.writeBest(this.bestKey, this.score.total);
+    return true;
+  }
+
   startClock(): void {
     if (this.running || this.outcome !== 'playing') return;
     this.running = true;
@@ -195,10 +208,7 @@ export class Session<S> implements ViewHost<S> {
       this.score.total = this.def.score(this.state) + this.score.bonus;
     }
 
-    const previousBest = this.deps.readBest(this.bestKey);
-    const isBest = this.score.total > previousBest;
-    if (isBest) this.deps.writeBest(this.bestKey, this.score.total);
-
+    const isBest = this.recordBest();
     this.deps.save(null); // a finished round is not resumable
 
     this.deps.events.onOutcome(outcome, {

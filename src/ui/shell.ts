@@ -99,6 +99,7 @@ export function createShell(root: HTMLElement, version: string): void {
 
   function start(def: AnyDef, difficulty?: string, restore?: SavedRound): void {
     sound.resume();
+    session?.recordBest();     // abandoning for a new round still counts
     view?.destroy();
     window.clearInterval(clockTimer);
 
@@ -250,12 +251,17 @@ export function createShell(root: HTMLElement, version: string): void {
     if (!session) return;
     const hint = session.penaliseForHint();
     if (!hint) { toast(T.noMoves); sound.bad(); return; }
-    if (hint.kind === 'pile' && hint.message) toast(hint.message);
+    // Every hint kind can carry a message, and for Sudoku, Minesweeper and 2048
+    // the message *is* the hint — which digit, which rule, which direction.
+    // Only showing it for pile hints made those three flash a cell and say
+    // nothing useful.
+    if ('message' in hint && hint.message) toast(hint.message);
     view?.showHint?.(hint);
   }
 
   function toMenu(): void {
     session?.stopClock();
+    session?.recordBest();     // leaving mid-round still counts toward the best
     window.clearInterval(clockTimer);
     renderHome();
     show(home);

@@ -107,6 +107,24 @@ describe('outcomes', () => {
     expect(g2048.isWon(s)).toBe(false);         // reached is only set by a move
   });
 
+  it('moves tiles in the direction actually asked for', () => {
+    // The grid is never mirrored for RTL. Mirroring it made ArrowLeft slide the
+    // tiles visually right, so each direction is pinned here explicitly.
+    const start = [[0, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
+
+    const left = board(start); slide(left, 'left');
+    expect(grid(left)[1]).toEqual([2, 0, 0, 0]);
+
+    const right = board(start); slide(right, 'right');
+    expect(grid(right)[1]).toEqual([0, 0, 0, 2]);
+
+    const up = board(start); slide(up, 'up');
+    expect(grid(up)[0]![2]).toBe(2);
+
+    const down = board(start); slide(down, 'down');
+    expect(grid(down)[3]![2]).toBe(2);
+  });
+
   it('suggests a direction that actually moves something', () => {
     const s = board([[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
     const hint = g2048.hint(s);

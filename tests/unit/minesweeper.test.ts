@@ -128,6 +128,45 @@ describe('minesweeper rules', () => {
     expect(minesweeperSpec.score(s)).toBe(afterReveal);
   });
 
+  it('flags with a right-click whatever the mode', () => {
+    const s = fresh();
+    minesweeperSpec.onCell(s, 40, hostFor(s) as never);       // start the board
+    const hidden = s.revealed.findIndex((r) => !r);
+    expect(s.mode).toBe('reveal');
+
+    minesweeperSpec.onCell(s, hidden, hostFor(s) as never, true);
+    expect(s.flags[hidden], 'right-click must flag even in reveal mode').toBe(true);
+
+    minesweeperSpec.onCell(s, hidden, hostFor(s) as never, true);
+    expect(s.flags[hidden], 'and must toggle back off').toBe(false);
+  });
+
+  it('chords a satisfied number open, and only a satisfied one', () => {
+    const s = fresh();
+    minesweeperSpec.onCell(s, 40, hostFor(s) as never);
+
+    // find a revealed number whose mines we can flag correctly
+    const target = s.revealed.findIndex((r, i) => {
+      if (!r || s.mines.includes(i)) return false;
+      const around = neighbours(i, s.cols, s.rows);
+      const mines = around.filter((n) => s.mines.includes(n));
+      return mines.length > 0 && around.some((n) => !s.revealed[n] && !s.mines.includes(n));
+    });
+    if (target < 0) return;                                   // deal without one
+
+    const around = neighbours(target, s.cols, s.rows);
+    const before = s.revealed.filter(Boolean).length;
+
+    // not yet flagged: chording must do nothing
+    minesweeperSpec.onCell(s, target, hostFor(s) as never);
+    expect(s.revealed.filter(Boolean).length).toBe(before);
+
+    for (const n of around) if (s.mines.includes(n)) s.flags[n] = true;
+    minesweeperSpec.onCell(s, target, hostFor(s) as never);
+    expect(s.revealed.filter(Boolean).length).toBeGreaterThan(before);
+    expect(s.dead, 'chording with correct flags must be safe').toBeNull();
+  });
+
   it('offers no undo, because a reveal cannot honestly be taken back', () => {
     expect(minesweeperSpec.canUndo).toBe(false);
     expect(minesweeperSpec.hasLoss).toBe(true);

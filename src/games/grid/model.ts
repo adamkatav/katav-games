@@ -26,8 +26,11 @@ export interface GridSpec<S> {
   create(rng: Rng, difficulty?: string): S;
   dims(state: S): { cols: number; rows: number };
   cell(state: S, index: number): CellView;
-  /** a tap on a cell; the game decides what that means in the current mode */
-  onCell(state: S, index: number, host: ViewHost<S>): void;
+  /**
+   * A tap on a cell. `secondary` is true for a right-click or long-press —
+   * always an accelerator, never the only way to reach an action.
+   */
+  onCell(state: S, index: number, host: ViewHost<S>, secondary?: boolean): void;
 
   score(state: S): number;
   isWon(state: S): boolean;
@@ -171,11 +174,24 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
     // Read the cell off the event target rather than hit-testing coordinates.
     // Grid cells are real elements that already know their index, so this is
     // exact, needs no RTL arithmetic, and works for synthetic clicks too.
-    grid.addEventListener('click', (e) => {
+    const indexOf = (e: Event): number | null => {
       const el = (e.target as HTMLElement | null)?.closest<HTMLElement>('.cell');
       const raw = el?.dataset['i'];
-      if (raw === undefined) return;
-      spec.onCell(host.state, Number(raw), host);
+      return raw === undefined ? null : Number(raw);
+    };
+
+    grid.addEventListener('click', (e) => {
+      const i = indexOf(e);
+      if (i !== null) spec.onCell(host.state, i, host, false);
+    });
+
+    // Right-click as an accelerator. The same action is always reachable
+    // through the toolbar mode switch, so nothing *requires* a second button.
+    grid.addEventListener('contextmenu', (e) => {
+      const i = indexOf(e);
+      if (i === null) return;
+      e.preventDefault();
+      spec.onCell(host.state, i, host, true);
     });
   }
 

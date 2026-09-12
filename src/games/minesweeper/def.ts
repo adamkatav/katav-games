@@ -1,4 +1,5 @@
 import type { Difficulty, Hint, Rng, ToolbarButton, ViewHost } from '../../core/types';
+import { neighbours } from '../grid/layout';
 import { createGridGame, type CellView, type GridSpec } from '../grid/model';
 import { generateBoard } from './generate';
 import { adjacentCount, deduce, flood } from './solver';
@@ -102,13 +103,48 @@ export const minesweeperSpec: GridSpec<MinesweeperState> = {
     return n === 0 ? { cls: 'open' } : { text: String(n), cls: `open n${n}` };
   },
 
-  onCell(s, i, host: ViewHost<MinesweeperState>) {
+  onCell(s, i, host: ViewHost<MinesweeperState>, secondary = false) {
     if (s.dead !== null) return;
 
-    if (s.mode === 'flag') {
+    // Right-click flags, whatever the mode — the classic accelerator.
+    if (secondary || s.mode === 'flag') {
+      if (s.revealed[i]) return;
       // Flags are self-reversing, which is why this game needs no undo button.
       host.commit((d) => { d.flags[i] = !d.flags[i]; });
       host.sound.flip();
+      return;
+    }
+
+    // Chording: clicking a revealed number that already has all its mines
+    // flagged opens every other neighbour at once. In Windows this needs both
+    // buttons; here a plain click does it, because a click on a satisfied
+    // number has no other meaning.
+    if (s.revealed[i] && !isMine(s, i)) {
+      const board = boardOf(s);
+      const around = neighbours(i, s.cols, s.rows);
+      const flagged = around.filter((n) => s.flags[n]);
+      if (flagged.length !== adjacentCount(board, i) || flagged.length === 0) return;
+
+      const toOpen = around.filter((n) => !s.flags[n] && !s.revealed[n]);
+      if (toOpen.length === 0) return;
+
+      host.commit((d) => {
+        const live = { cols: d.cols, rows: d.rows, mines: new Set(d.mines) };
+        const revealed = new Set<number>();
+        for (let k = 0; k < d.revealed.length; k++) if (d.revealed[k]) revealed.add(k);
+
+        for (const n of toOpen) {
+          if (d.mines.includes(n)) {          // a wrong flag makes chording fatal
+            d.dead = n;
+            d.revealed[n] = true;
+            for (const m of d.mines) d.revealed[m] = true;
+            return;
+          }
+          flood(live, revealed, n);
+        }
+        for (const k of revealed) d.revealed[k] = true;
+      });
+      host.sound[host.state.dead === null ? 'place' : 'bad']();
       return;
     }
 
