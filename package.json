@@ -1,6 +1,6 @@
 {
   "name": "katav-games",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "type": "module",
   "description": "Hebrew card games built for one elderly player — the Katav family game box",

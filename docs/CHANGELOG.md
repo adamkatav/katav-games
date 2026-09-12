@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.14.0 (2026-09-12)
+
+### Feat
+
+- **sudoku**: rule the 3x3 boxes with real lines
+
 ## v0.13.0 (2026-09-12)
 
 ### Feat
