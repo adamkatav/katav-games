@@ -33,7 +33,7 @@ test.beforeEach(async ({ page }) => {
 
 test('home lists every game', async ({ page }) => {
   await expect(page.locator('.game-name'))
-    .toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש', 'מוקשים']);
+    .toHaveText(['סוליטר', 'פריסל', 'סוליטר עכביש', 'מוקשים', 'סודוקו']);
 });
 
 test('a game deals and the board fits without scrolling', async ({ page }) => {
@@ -159,6 +159,37 @@ test('minesweeper: first click is safe and the mode switch works', async ({ page
   await expect(flagBtn).toHaveClass(/active/);
   await page.locator('.cell.hidden').first().click();
   await expect(page.locator('.cell.flag')).toHaveCount(1);
+});
+
+test('sudoku: tap a cell then a digit, and givens stay locked', async ({ page }) => {
+  await start(page, 'sudoku', 'easy');
+  expect(await page.locator('.cell').count()).toBe(81);
+  expect(await page.locator('.sudoku-pad button').count()).toBe(10);   // 1-9 and erase
+
+  const target = await page.evaluate(() => {
+    const s = (window as unknown as {
+      __shell: { session: { state: { puzzle: number[]; solution: number[] } } };
+    }).__shell.session.state;
+    const i = s.puzzle.findIndex((v) => v === 0);
+    return { index: i, digit: s.solution[i]! };
+  });
+
+  await page.locator('.cell').nth(target.index).click();
+  await expect(page.locator('.cell.sel')).toHaveCount(1);
+  await page.locator('.sudoku-pad button').nth(target.digit - 1).click();
+
+  await expect(page.locator('.cell').nth(target.index)).toHaveText(String(target.digit));
+
+  // a given must not accept a digit
+  const givenIndex = await page.evaluate(() => {
+    const s = (window as unknown as { __shell: { session: { state: { puzzle: number[] } } } })
+      .__shell.session.state;
+    return s.puzzle.findIndex((v) => v !== 0);
+  });
+  const givenText = await page.locator('.cell').nth(givenIndex).textContent();
+  await page.locator('.cell').nth(givenIndex).click();
+  await page.locator('.sudoku-pad button').nth(0).click();
+  await expect(page.locator('.cell').nth(givenIndex)).toHaveText(givenText ?? '');
 });
 
 test('settings persist across a reload', async ({ page }) => {

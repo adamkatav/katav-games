@@ -309,3 +309,12 @@ body {
 }
 .pad button.on { color: #fff; background: linear-gradient(#1877cc, #0d5fa8); border-color: #073a66; }
 .pad button:active { transform: translateY(2px); }
+
+/* sudoku */
+.cell.sud { color: #16304a; background: #fbfdff; border: 1px solid #b9c9d6; border-radius: 3px; }
+.cell.sud.shade { background: #eaf1f7; }
+.cell.sud.given { color: var(--navy); font-weight: 900; background: #dde6ee; cursor: default; }
+.cell.sud.sel { outline: 3px solid var(--gold); outline-offset: -3px; background: #fff6dd; z-index: 2; }
+.cell.sud.bad { color: #c62828; background: #ffe3de; }
+.cell.sud.notes { color: #6b7c8c; font-weight: 600; letter-spacing: .5px; line-height: 1.1; padding: 2px; text-align: center; }
+.sudoku-pad { grid-template-columns: repeat(5, auto); }

@@ -3,10 +3,11 @@ import { klondike } from './cards/klondike';
 import { freecell } from './cards/freecell';
 import { spider } from './cards/spider';
 import { minesweeper } from './minesweeper/def';
+import { sudoku } from './sudoku/def';
 
 /** Add a game here and it appears on the home screen. Nothing else to wire. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const GAMES: ReadonlyArray<GameDef<any>> = [klondike, freecell, spider, minesweeper];
+export const GAMES: ReadonlyArray<GameDef<any>> = [klondike, freecell, spider, minesweeper, sudoku];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const findGame = (id: string): GameDef<any> | undefined =>
@@ -73,6 +74,21 @@ export const HELP_HTML = `
       להוריד בלחיצה נוספת.</li>
   <li><b>💡 רמז</b> מצביע על תא שאפשר להוכיח, ואומר לפי איזה כלל — כדי ללמוד,
       לא רק כדי להינצל.</li>
+</ul>
+
+<h3>🔢 סודוקו</h3>
+<ul>
+  <li>המטרה: למלא את כל הלוח בספרות 1 עד 9, כך שבכל שורה, בכל טור ובכל ריבוע
+      של 3×3 כל ספרה מופיעה בדיוק פעם אחת.</li>
+  <li>הספרות הכהות הן <b>נתונות</b> — אי אפשר לשנות אותן.</li>
+  <li>לוחצים על תא ריק, ואז על ספרה בלוח המספרים שמתחת. לחיצה על אותה ספרה
+      שוב מוחקת אותה, ואפשר גם ללחוץ על ⌫.</li>
+  <li>בסרגל למעלה בוחרים בין <b>✏️ ספרה</b> ל־<b>📝 טיוטה</b> — בטיוטה רושמים
+      כמה אפשרויות קטנות בתא, בלי להתחייב.</li>
+  <li>ספרה שמתנגשת עם ספרה אחרת תיצבע באדום מיד.</li>
+  <li><b>אין הפסד בסודוקו</b> — אפשר תמיד לתקן, ויש ביטול בלי הגבלה.</li>
+  <li>בכל חידה יש <b>פתרון אחד בלבד</b>, ואפשר תמיד להגיע אליו בהיגיון.
+      <b>💡 רמז</b> ממלא תא אחד ומסביר לפי איזה כלל.</li>
 </ul>
 
 <h3>ניקוד, רצף וכוכבים</h3>
