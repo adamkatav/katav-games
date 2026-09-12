@@ -419,7 +419,7 @@ button{font-family:inherit;}
     <ul>
       <li>מקבלים נקודות על כל קלף שמגיע לסיום, על כל קלף שנחשף ועל כל סדרה שמושלמת.</li>
       <li><b>רצף</b>: כל מהלך שמקדם אתכם מעלה את המכפיל — ×1.5, ×2, ×2.5, ×3 ועד ×4.
-          הצליל עולה עם הרצף. מהלך שלא מקדם שובר אותו.</li>
+          הצליל עולה עם הרצף. מהלך שלא מקדם שובר אותו — וגם בקשת <b>רמז</b>.</li>
       <li>שברתם רצף? לחיצה על <b>ביטול</b> מחזירה אותו — ואפשר לנסות שוב.</li>
       <li>בסוף המשחק מקבלים בין כוכב אחד לחמישה כוכבים — לפי מספר המהלכים והזמן.</li>
     </ul>
@@ -1017,9 +1017,18 @@ function findHint(){
 }
 function hasAnyMove(){ return !!findHint(); }
 
+/* קבלת רמז שוברת את הרצף — הרצף הוא על התקדמות עצמאית.
+   נשבר רק כשבאמת ניתן רמז, ולא כשאין מהלך להציע. */
+function breakComboForHint(){
+  if(!S.combo) return;
+  if(S.combo>=2) SND.comboEnd();
+  S.combo=0;
+  updateStats(); saveGame();
+}
 function showHint(){
   const h=findHint();
   if(!h){ toast('אין מהלך זמין'); SND.bad(); return; }
+  breakComboForHint();
   if(h.stock){ flashEl(els['slot_stock']); toast('אפשר לקחת קלף מהחפיסה'); return; }
   const c=S.piles[h.from][h.idx];
   flashEl(els[c.i]);
