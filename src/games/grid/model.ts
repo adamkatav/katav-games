@@ -22,6 +22,10 @@ export interface GridSpec<S> {
   readonly hasLoss: boolean;
   /** below this a cell label stops being readable */
   readonly minCell?: number;
+  /** 0 makes the cells touch, for a board ruled with lines instead of gaps */
+  readonly gapRatio?: number;
+  /** extra class on the grid element, for board-specific decoration */
+  readonly gridClass?: string;
 
   create(rng: Rng, difficulty?: string): S;
   dims(state: S): { cols: number; rows: number };
@@ -81,6 +85,7 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
     root.innerHTML = '<div class="grid-board"><div class="grid"></div></div>';
     board = root.querySelector('.grid-board')!;
     grid = root.querySelector('.grid')!;
+    if (spec.gridClass) grid.classList.add(spec.gridClass);
 
     controls = spec.controls?.(host, () => { refreshControls(); render(host.state); }) ?? null;
     if (controls) board.append(controls);
@@ -140,6 +145,7 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
       reservedH: reserved,
       sizeScale: host.settings.size,
       ...(spec.minCell !== undefined ? { minCell: spec.minCell } : {}),
+      ...(spec.gapRatio !== undefined ? { gapRatio: spec.gapRatio } : {}),
     });
 
     grid.style.setProperty('--cell', `${geometry.cell}px`);

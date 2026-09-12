@@ -36,6 +36,8 @@ export const sudokuSpec: GridSpec<SudokuState> = {
   canUndo: true,
   hasLoss: false,          // Sudoku has no losing condition; do not invent one
   minCell: 32,
+  gapRatio: 0,             // cells touch, so the box lines can run unbroken
+  gridClass: 'sudoku-grid',
 
   create(rng: Rng, difficulty = 'easy'): SudokuState {
     const { puzzle, solution } = generatePuzzle(rng, difficulty);

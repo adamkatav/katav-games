@@ -345,8 +345,33 @@ body {
 .pad button:active { transform: translateY(2px); }
 
 /* sudoku */
-.cell.sud { color: #16304a; background: #fbfdff; border: 1px solid #b9c9d6; border-radius: 3px; }
-.cell.sud.shade { background: #eaf1f7; }
+.sudoku-grid { --rule: #2b3d52; --rule-w: max(3px, calc(var(--cell) * .07)); }
+
+/*
+ * The 3x3 boxes are ruled with real lines rather than only shaded. The cells
+ * touch (gapRatio 0), so the lines can run unbroken across the board; they are
+ * drawn as one overlay so they stay crisp instead of doubling up at the seams
+ * where two cell borders would meet.
+ */
+.sudoku-grid::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  box-shadow: 0 0 0 var(--rule-w) var(--rule);
+  background:
+    linear-gradient(var(--rule), var(--rule))
+      calc(var(--cell) * 3 - var(--rule-w) / 2) 0 / var(--rule-w) 100% no-repeat,
+    linear-gradient(var(--rule), var(--rule))
+      calc(var(--cell) * 6 - var(--rule-w) / 2) 0 / var(--rule-w) 100% no-repeat,
+    linear-gradient(var(--rule), var(--rule))
+      0 calc(var(--cell) * 3 - var(--rule-w) / 2) / 100% var(--rule-w) no-repeat,
+    linear-gradient(var(--rule), var(--rule))
+      0 calc(var(--cell) * 6 - var(--rule-w) / 2) / 100% var(--rule-w) no-repeat;
+}
+
+.cell.sud {
+  color: #16304a; background: #fbfdff; border-radius: 0;
+  border: 1px solid #c6d4e0;
+}
+.cell.sud.shade { background: #f0f5fa; }
 .cell.sud.given { color: var(--navy); font-weight: 900; background: #dde6ee; cursor: default; }
 .cell.sud.sel { outline: 3px solid var(--gold); outline-offset: -3px; background: #fff6dd; z-index: 2; }
 .cell.sud.bad { color: #c62828; background: #ffe3de; }

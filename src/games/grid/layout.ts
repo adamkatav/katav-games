@@ -26,6 +26,8 @@ export interface GridLayoutInput {
   /** below this a cell's label stops being readable at arm's length */
   readonly minCell?: number;
   readonly maxCell?: number;
+  /** 0 makes the cells touch, for boards drawn with ruled lines rather than gaps */
+  readonly gapRatio?: number;
 }
 
 export function computeGridGeometry(input: GridLayoutInput): GridGeometry {
@@ -34,7 +36,7 @@ export function computeGridGeometry(input: GridLayoutInput): GridGeometry {
   const maxCell = input.maxCell ?? 120;
 
   const usableH = Math.max(0, input.availableH - input.reservedH);
-  const gapRatio = cols > 12 ? 0.05 : 0.08;
+  const gapRatio = input.gapRatio ?? (cols > 12 ? 0.05 : 0.08);
 
   const byWidth = input.availableW / (cols + (cols - 1) * gapRatio);
   const byHeight = usableH / (rows + (rows - 1) * gapRatio);
@@ -44,7 +46,7 @@ export function computeGridGeometry(input: GridLayoutInput): GridGeometry {
   cell = Math.max(minCell, Math.min(maxCell, cell));
 
   const size = Math.floor(cell);
-  const gap = Math.max(2, Math.floor(size * gapRatio));
+  const gap = gapRatio === 0 ? 0 : Math.max(2, Math.floor(size * gapRatio));
 
   return {
     cell: size,
