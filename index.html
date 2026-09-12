@@ -314,6 +314,7 @@ button{font-family:inherit;}
       <span class="stat">ניקוד <b id="sScore">0</b></span>
       <span class="stat">מהלכים <b id="sMoves">0</b></span>
       <span class="stat">זמן <b id="sTime">0:00</b></span>
+      <span class="stat">שיא <b id="sBest">0</b></span>
       <span class="stat" id="sExtraWrap">סדרות <b id="sExtra">0</b>/8</span>
       <span class="stat combo" id="sComboWrap">רצף <b id="sCombo">×2</b></span>
     </div>
@@ -675,9 +676,21 @@ function layout(){
   const availH = boardWrap.clientHeight-20;
   const gapR = (S.game==='spider' && availW<680) ? 0.05 : 0.12;
 
+  // גובה הטור הארוך ביותר, כיחס לרוחב קלף: שורת הערימות העליונה, הפריסה
+  // הדחוסה ביותר שעדיין קריאה, ועוד גובה הקלף האחרון. מכאן נגזר רוחב הקלף
+  // המרבי שבו הטור עדיין נכנס למסך — כך הקלפים מתכווצים במקום שהלוח ייגלל.
+  const RATIO_TOP = 1.45 + gapR*1.7, RATIO_CARD = 1.45;
+  let deepest = 0;
+  tabs().forEach(p=>{
+    const a=S.piles[p], nd=a.filter(x=>!x.u).length;
+    deepest = Math.max(deepest, 0.10*nd + 0.34*Math.max(0,a.length-nd-1));
+  });
+  // מונוטוני: התקרה רק מתהדקת במהלך משחק, כדי שהקלפים לא יקפצו הלוך ושוב
+  S.fanCap = Math.max(S.fanCap||0, RATIO_TOP + deepest + RATIO_CARD);
+
   let cw = availW/(cols+(cols-1)*gapR);
   const cwH = (availH/3.55)/1.45;
-  cw = Math.min(cw, cwH)*ST.size;
+  cw = Math.min(cw, cwH, availH/S.fanCap)*ST.size;
   cw = Math.max(32, Math.min(190, cw));
 
   CW=Math.floor(cw); CH=Math.round(CW*1.45); GAP=Math.floor(CW*gapR);
@@ -1381,6 +1394,8 @@ function updateStats(){
   const sp=S.game==='spider';
   $('#sExtraWrap').style.display = sp?'':'none';
   if(sp) $('#sExtra').textContent = founds().filter(f=>S.piles[f].length===13).length;
+  let best=0; try{ best=+(localStorage.getItem(LS.best(parKey()))||0); }catch(e){}
+  $('#sBest').textContent = best.toLocaleString('he-IL');
   const m = comboMult(S.combo);
   $('#sComboWrap').classList.toggle('on', m>1);
   $('#sCombo').textContent = '×'+m;
@@ -1538,6 +1553,20 @@ addEventListener('keydown', e=>{
 });
 
 $('#byline').textContent = 'v' + APP_VERSION + ' · by Adam Katav';
+/* שכבת בדיקות: נחשפת רק עם ?test=1, כך שאין משטח ניפוי במשחק הרגיל.
+   tests/run.html טוען את הדף כך ומריץ מולו את חבילת הבדיקות. */
+if(location.search.includes('test=1')){
+  window.__GAME = {
+    get S(){ return S; }, set S(v){ S=v; },
+    startGame, boardScore, syncScore, doMove, canDrop, canGrab, whyNot,
+    findHint, checkSets, clickStock, handleClick, pushUndo, layout, render,
+    tabs, founds, top, comboMult, syncEmpties,
+    els:()=>els, geo:()=>GEO, dims:()=>({CW,CH,GAP,BW,BH}),
+    undo:()=>$('#btnUndo').click(),
+    hint:()=>$('#btnHint').click(),
+    wrap:()=>boardWrap, boardEl:()=>board
+  };
+}
 refreshBest();
 })();
 </script>
