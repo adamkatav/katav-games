@@ -8,6 +8,13 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.8.1 (2026-09-12)
+
+### Fix
+
+- **input**: allow placing a card on an empty column
+- **build**: point cz version_files at package.json
+
 ## v0.8.0 (2026-09-12)
 
 ### BREAKING CHANGE
