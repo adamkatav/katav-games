@@ -284,6 +284,15 @@ button{font-family:inherit;}
       </span>
     </button>
 
+    <button class="gamecard" data-game="freecell">
+      <span class="emoji">🃏</span>
+      <span class="txt">
+        <span class="n">פריסל</span>
+        <span class="d">כל הקלפים גלויים — משחק של חשיבה</span>
+        <span class="best" id="bestF"></span>
+      </span>
+    </button>
+
     <button class="gamecard" data-game="spider">
       <span class="emoji">🕷️</span>
       <span class="txt">
@@ -315,7 +324,7 @@ button{font-family:inherit;}
       <span class="stat">מהלכים <b id="sMoves">0</b></span>
       <span class="stat">זמן <b id="sTime">0:00</b></span>
       <span class="stat">שיא <b id="sBest">0</b></span>
-      <span class="stat" id="sExtraWrap">סדרות <b id="sExtra">0</b>/8</span>
+      <span class="stat" id="sExtraWrap">סדרות <b id="sExtra">0</b><span id="sExtraSuffix">/8</span></span>
       <span class="stat combo" id="sComboWrap">רצף <b id="sCombo">×2</b></span>
     </div>
   </div>
@@ -445,6 +454,17 @@ button{font-family:inherit;}
       <li>בטור ריק מניחים רק <b>מלך</b>.</li>
       <li>לחיצה על חפיסת הקלפים בצד מוציאה קלף חדש. כשהיא נגמרת — לחיצה מתחילה אותה מחדש.</li>
     </ul>
+    <h3>🃏 פריסל</h3>
+    <ul>
+      <li>המטרה זהה לסוליטר: לבנות בארבע ערימות הסיום מ<b>אס</b> ועד <b>מלך</b>, כל אחת בצורה אחת.</li>
+      <li><b>כל הקלפים גלויים מההתחלה</b> — אין הפתעות, רק חשיבה. כמעט כל חלוקה ניתנת לפתרון.</li>
+      <li>בטורים מסדרים בסדר <b>יורד</b> ובצבעים <b>מתחלפים</b>, כמו בסוליטר.</li>
+      <li>ארבעת התאים למעלה משמאל הם <b>תאים פנויים</b> — בכל אחד אפשר להחנות קלף אחד.</li>
+      <li>בטור ריק אפשר להניח <b>כל קלף</b>, לא רק מלך.</li>
+      <li>כמה קלפים אפשר להעביר יחד? לפי מספר התאים הפנויים והטורים הריקים —
+          ככל שיש יותר, אפשר להעביר רצף ארוך יותר.</li>
+    </ul>
+
     <h3>🕷️ סוליטר עכביש</h3>
     <ul>
       <li>המטרה: לבנות שמונה סדרות שלמות מ<b>מלך</b> ועד <b>אס</b> באותה צורה. סדרה שהושלמה נעלמת מהלוח.</li>
@@ -547,13 +567,27 @@ let gen = 0;              // מזהה משחק — מבטל אנימציות ש�
 const board = $('#board'), boardWrap = $('#boardWrap');
 
 const isRed = c => c.s===1 || c.s===2;
-const tabs = () => S.game==='klondike'
-  ? ['t0','t1','t2','t3','t4','t5','t6']
-  : ['t0','t1','t2','t3','t4','t5','t6','t7','t8','t9'];
-const founds = () => S.game==='klondike'
-  ? ['f0','f1','f2','f3']
-  : ['c0','c1','c2','c3','c4','c5','c6','c7'];
+const COLS = {klondike:7, spider:10, freecell:8};
+const ids = (p,n) => Array.from({length:n}, (_,i)=>p+i);
+const tabs   = () => ids('t', COLS[S.game]);
+const founds = () => S.game==='spider' ? ids('c',8) : ids('f',4);
+const cells  = () => S.game==='freecell' ? ids('e',4) : [];   // תאים פנויים
+/* סדר הערימות בלוח — גם סדר הציור וגם סדר שכבות ה-z */
+const pileOrder = () => S.game==='klondike'
+  ? ['stock','waste',...founds(),...tabs()]
+  : S.game==='spider'
+    ? ['stock',...founds(),...tabs()]
+    : [...cells(),...founds(),...tabs()];
 const top = p => { const a=S.piles[p]; return a.length?a[a.length-1]:null; };
+
+/* פריסל: כמה קלפים אפשר להעביר יחד — תא פנוי מכפיל, טור ריק מכפיל פי שניים.
+   טור ריק שהוא עצמו היעד אינו נספר. */
+function maxMove(destPile){
+  const free  = cells().filter(p=>!S.piles[p].length).length;
+  let empties = tabs().filter(p=>!S.piles[p].length).length;
+  if(destPile && destPile[0]==='t' && !S.piles[destPile].length) empties--;
+  return (free+1) * Math.pow(2, Math.max(0,empties));
+}
 
 /* =========================================================================
    בניית חפיסה וחלוקה
@@ -586,6 +620,18 @@ function newSpider(suits){
   piles.stock=deck;
   return {game:'spider', suits, piles, score:0, moves:0, bonus:0, peak:0, combo:0};
 }
+function newFreecell(){
+  let id=0, deck=[];
+  for(let s=0;s<4;s++) for(let r=1;r<=13;r++) deck.push({i:id++, r, s, u:true});
+  shuffle(deck);
+  const piles={};
+  ids('e',4).forEach(p=>piles[p]=[]);
+  ids('f',4).forEach(p=>piles[p]=[]);
+  ids('t',8).forEach(p=>piles[p]=[]);
+  // הכל גלוי מההתחלה — פריסל הוא משחק של מידע מלא
+  deck.forEach((c,k)=>piles['t'+(k%8)].push(c));
+  return {game:'freecell', suits:1, piles, score:0, moves:0, bonus:0, peak:0, combo:0};
+}
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } }
 
 /* =========================================================================
@@ -593,10 +639,7 @@ function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|
    ========================================================================= */
 function buildDom(){
   board.innerHTML=''; els={};
-  const order = S.game==='klondike'
-    ? ['stock','waste','f0','f1','f2','f3',...tabs()]
-    : ['stock',...founds(),...tabs()];
-  order.forEach(p=>{
+  pileOrder().forEach(p=>{
     const d=document.createElement('div');
     d.className='slot'; d.dataset.pile=p;
     if(p==='stock') d.textContent='↻';
@@ -671,7 +714,7 @@ if(window.ART && ART.back)
    פריסה (layout)
    ========================================================================= */
 function layout(){
-  const cols = S.game==='klondike'?7:10;
+  const cols = COLS[S.game];
   const availW = boardWrap.clientWidth-20;
   const availH = boardWrap.clientHeight-20;
   const gapR = (S.game==='spider' && availW<680) ? 0.05 : 0.12;
@@ -707,9 +750,12 @@ function layout(){
     GEO.stock={x:X(colX(0)),y:topY};
     GEO.waste={x:X(colX(1)),y:topY};
     for(let k=0;k<4;k++) GEO['f'+k]={x:X(colX(3+k)),y:topY};
-  }else{
+  }else if(S.game==='spider'){
     GEO.stock={x:X(colX(0)),y:topY};
     for(let k=0;k<8;k++) GEO['c'+k]={x:X(colX(2+k)),y:topY};
+  }else{                                   // פריסל: תאים פנויים ואז ערימות הסיום
+    for(let k=0;k<4;k++) GEO['e'+k]={x:X(colX(k)),y:topY};
+    for(let k=0;k<4;k++) GEO['f'+k]={x:X(colX(4+k)),y:topY};
   }
 
   // מרווחי הפריסה. fuMin הוא הרוחב המינימלי שבו הדרגה בראש הקלף עדיין נקראת.
@@ -767,10 +813,7 @@ function cardXY(pile, idx){
 
 function render(){
   let z=1;
-  const order = S.game==='klondike'
-    ? ['stock','waste','f0','f1','f2','f3',...tabs()]
-    : ['stock',...founds(),...tabs()];
-  order.forEach(p=>{
+  pileOrder().forEach(p=>{
     const a=S.piles[p];
     a.forEach((c,i)=>{
       const d=els[c.i], pos=cardXY(p,i);
@@ -785,8 +828,10 @@ function render(){
   if(S.game==='spider') founds().forEach(p=>{
     S.piles[p].forEach((c,i)=>{ els[c.i].style.opacity = (i>=S.piles[p].length-1)?'1':'0'; });
   });
-  els['slot_stock'].textContent = S.piles.stock.length ? '' : '↻';
-  if(S.game==='spider') els['slot_stock'].textContent = S.piles.stock.length ? String(S.piles.stock.length/10|0) : '';
+  if(els['slot_stock'])
+    els['slot_stock'].textContent = S.game==='spider'
+      ? (S.piles.stock.length ? String(S.piles.stock.length/10|0) : '')
+      : (S.piles.stock.length ? '' : '↻');
   drawSelection();
   updateStats();
 }
@@ -813,33 +858,39 @@ function canGrab(pile, idx){
   const a=S.piles[pile];
   if(idx>=a.length) return false;
   if(pile==='waste') return idx===a.length-1;
-  if(founds().includes(pile)) return S.game==='klondike' && idx===a.length-1;
+  if(cells().includes(pile)) return idx===a.length-1;
+  if(founds().includes(pile)) return S.game!=='spider' && idx===a.length-1;
   const run=a.slice(idx);
   if(run.some(c=>!c.u)) return false;
-  if(S.game==='klondike'){
-    for(let k=1;k<run.length;k++)
-      if(run[k].r!==run[k-1].r-1 || isRed(run[k])===isRed(run[k-1])) return false;
-  }else{
+  if(S.game==='spider'){
     for(let k=1;k<run.length;k++)
       if(run[k].r!==run[k-1].r-1 || run[k].s!==run[k-1].s) return false;
+  }else{                                   // סוליטר ופריסל — יורד ובצבעים מתחלפים
+    for(let k=1;k<run.length;k++)
+      if(run[k].r!==run[k-1].r-1 || isRed(run[k])===isRed(run[k-1])) return false;
   }
   return true;
 }
 function canDrop(run, destPile, fromPile){
   if(destPile===fromPile || destPile==='stock' || destPile==='waste') return false;
   const c=run[0], t=top(destPile);
-  if(S.game==='klondike'){
-    if(destPile[0]==='f'){
-      if(run.length!==1) return false;
-      return t ? (t.s===c.s && t.r===c.r-1) : c.r===1;
-    }
-    if(!t) return c.r===13;
-    return t.u && t.r===c.r+1 && isRed(t)!==isRed(c);
-  }else{
+  if(S.game==='spider'){
     if(destPile[0]==='c') return false;
     if(!t) return true;
     return t.u && t.r===c.r+1;
   }
+  if(destPile[0]==='f'){
+    if(run.length!==1) return false;
+    return t ? (t.s===c.s && t.r===c.r-1) : c.r===1;
+  }
+  if(destPile[0]==='e')                    // תא פנוי מחזיק קלף בודד
+    return S.game==='freecell' && run.length===1 && !t;
+  if(S.game==='freecell'){
+    if(run.length > maxMove(destPile)) return false;
+    return t ? (t.r===c.r+1 && isRed(t)!==isRed(c)) : true;   // טור ריק מקבל הכל
+  }
+  if(!t) return c.r===13;
+  return t.u && t.r===c.r+1 && isRed(t)!==isRed(c);
 }
 /* מסביר בעברית למה מהלך נדחה. סירוב שקט מבלבל — במיוחד כשסימון היעדים כבוי,
    ואז אין שום רמז למה הקלף פשוט לא זז. מחזיר מחרוזת ריקה כשאין מה להסביר. */
@@ -851,6 +902,10 @@ function whyNot(run, destPile){
              : 'ערימת הסיום מתחילה באס';
   }
   if(destPile[0]==='c') return 'הערימות למעלה מתמלאות לבד כשמשלימים סדרה';
+  if(destPile[0]==='e')
+    return t ? 'התא הזה תפוס' : 'לתא פנוי אפשר להעביר קלף אחד בלבד';
+  if(S.game==='freecell' && run.length>maxMove(destPile))
+    return 'אין מספיק תאים פנויים כדי להעביר כל כך הרבה קלפים יחד';
   if(!t) return S.game==='klondike' ? 'בטור ריק אפשר להניח רק מלך' : '';
   if(!t.u) return 'צריך להפוך קודם את הקלף הזה';
   return S.game==='klondike'
@@ -876,9 +931,17 @@ function boardScore(){
   tabs().forEach(p=>{ hidden += S.piles[p].filter(c=>!c.u).length; });
   const revealed = (S.hidden0 - hidden) * 10;   // חשיפת קלף היא חד-כיוונית
 
-  if(S.game==='klondike'){
+  if(S.game!=='spider'){
     const onFoundations = founds().reduce((n,p)=>n+S.piles[p].length, 0);
-    return revealed + onFoundations*15;
+    if(S.game==='klondike') return revealed + onFoundations*15;
+    // פריסל: אין קלפים מוסתרים, אז מתגמלים גם בנייה מסודרת בטורים
+    let ordered=0;
+    tabs().forEach(p=>{
+      const a=S.piles[p];
+      for(let k=1;k<a.length;k++)
+        if(a[k].r===a[k-1].r-1 && isRed(a[k])!==isRed(a[k-1])) ordered++;
+    });
+    return onFoundations*15 + ordered*3;
   }
   let pairs=0;                                   // זוגות עוקבים באותה צורה
   tabs().forEach(p=>{
@@ -1053,6 +1116,43 @@ function autoCollect(){
    רמז
    ========================================================================= */
 function findHint(){
+  if(S.game==='freecell'){
+    // 1. לערימות הסיום — תמיד ההתקדמות האמיתית
+    for(const p of [...tabs(), ...cells()]){
+      const t=top(p); if(!t) continue;
+      const f=founds().find(f=>canDrop([t],f,p));
+      if(f) return {from:p, idx:S.piles[p].length-1, to:f};
+    }
+    // 2. החזרת קלף מתא פנוי אל טור — משחררת תא
+    for(const p of cells()){
+      const t=top(p); if(!t) continue;
+      const d=tabs().find(x=>S.piles[x].length && canDrop([t],x,p));
+      if(d) return {from:p, idx:0, to:d};
+    }
+    // 3. בנייה בין טורים, בעדיפות למהלך שמאריך רצף קיים
+    for(const p of tabs()){
+      const a=S.piles[p];
+      for(let i=0;i<a.length;i++){
+        if(!canGrab(p,i)) continue;
+        const run=a.slice(i);
+        const d=tabs().find(x=>S.piles[x].length && canDrop(run,x,p));
+        if(d) return {from:p, idx:i, to:d};
+        break;
+      }
+    }
+    // 4. לטור ריק, ואז לתא פנוי — מוצא אחרון
+    for(const p of tabs()){
+      const a=S.piles[p]; if(a.length<2) continue;
+      const d=tabs().find(x=>!S.piles[x].length);
+      if(d && canDrop([a[a.length-1]],d,p)) return {from:p, idx:a.length-1, to:d};
+    }
+    for(const p of tabs()){
+      const t=top(p); if(!t) continue;
+      const e=cells().find(x=>!S.piles[x].length);
+      if(e) return {from:p, idx:S.piles[p].length-1, to:e};
+    }
+    return null;
+  }
   if(S.game==='klondike'){
     // 1. מהלך שחושף קלף מוסתר
     for(const p of tabs()){
@@ -1289,17 +1389,15 @@ function handleClick(loc){
    ========================================================================= */
 const PAR = {
   klondike:{moves:135, time:420},
+  freecell:{moves:110, time:420},
   spider1 :{moves:160, time:600},
   spider2 :{moves:260, time:900},
   spider4 :{moves:380, time:1200}
 };
-function parKey(){ return S.game==='klondike' ? 'klondike' : 'spider'+S.suits; }
+function parKey(){ return S.game==='spider' ? 'spider'+S.suits : S.game; }
 
 function checkWin(){
-  const won = S.game==='klondike'
-    ? founds().every(f=>S.piles[f].length===13)
-    : founds().every(f=>S.piles[f].length===13);
-  if(!won) return false;
+  if(!founds().every(f=>S.piles[f].length===13)) return false;
   stopTimer();
   const par=PAR[parKey()];
   const bonus = Math.max(0, Math.round(par.time*2 - T.elapsed*2)) + Math.max(0,(par.moves-S.moves)*3);
@@ -1391,9 +1489,16 @@ function updateStats(){
   $('#sScore').textContent=S.score;
   $('#sMoves').textContent=S.moves;
   $('#sTime').textContent=fmt(nowElapsed());
-  const sp=S.game==='spider';
-  $('#sExtraWrap').style.display = sp?'':'none';
-  if(sp) $('#sExtra').textContent = founds().filter(f=>S.piles[f].length===13).length;
+  const extra=$('#sExtraWrap');
+  if(S.game==='spider'){
+    extra.style.display=''; extra.firstChild.textContent='סדרות ';
+    $('#sExtra').textContent = founds().filter(f=>S.piles[f].length===13).length;
+    $('#sExtraSuffix').textContent='/8';
+  }else if(S.game==='freecell'){
+    extra.style.display=''; extra.firstChild.textContent='תאים פנויים ';
+    $('#sExtra').textContent = cells().filter(p=>!S.piles[p].length).length;
+    $('#sExtraSuffix').textContent='/4';
+  }else extra.style.display='none';
   let best=0; try{ best=+(localStorage.getItem(LS.best(parKey()))||0); }catch(e){}
   $('#sBest').textContent = best.toLocaleString('he-IL');
   const m = comboMult(S.combo);
@@ -1408,18 +1513,19 @@ function saveGame(){
 function loadSave(g){
   try{ return JSON.parse(localStorage.getItem(LS.save(g))||'null'); }catch(e){ return null; }
 }
+const GAME_HE = {klondike:'סוליטר', spider:'עכביש', freecell:'פריסל'};
 function refreshBest(){
   const k=n=>{ try{ return +(localStorage.getItem(LS.best(n))||0);}catch(e){return 0;} };
-  const bk=k('klondike');
-  const bs=Math.max(k('spider1'),k('spider2'),k('spider4'));
-  $('#bestK').textContent = bk?('🏆 שיא: '+bk.toLocaleString('he-IL')):'';
-  $('#bestS').textContent = bs?('🏆 שיא: '+bs.toLocaleString('he-IL')):'';
-  const sv = loadSave('klondike')||loadSave('spider');
+  const show=(el,v)=>{ $(el).textContent = v?('🏆 שיא: '+v.toLocaleString('he-IL')):''; };
+  show('#bestK', k('klondike'));
+  show('#bestF', k('freecell'));
+  show('#bestS', Math.max(k('spider1'),k('spider2'),k('spider4')));
+  const sv = loadSave('klondike')||loadSave('freecell')||loadSave('spider');
   const btn=$('#btnResume');
   if(sv && sv.S){
     btn.style.display='';
     $('#resumeDesc').textContent =
-      (sv.S.game==='klondike'?'סוליטר':'עכביש') + ' · ניקוד '+sv.S.score+' · '+fmt(sv.t||0);
+      GAME_HE[sv.S.game] + ' · ניקוד '+sv.S.score+' · '+fmt(sv.t||0);
     btn.dataset.g=sv.S.game;
   }else btn.style.display='none';
 }
@@ -1433,18 +1539,20 @@ function startGame(game, suits, restore){
   if(restore){
     S=restore.S; T.elapsed=restore.t||0; undoStack=restore.u||[];
   }else{
-    S = game==='klondike' ? newKlondike() : newSpider(suits);
+    S = game==='klondike' ? newKlondike()
+      : game==='freecell' ? newFreecell()
+      : newSpider(suits);
     // כמה קלפים מוסתרים יש בפתיחה — הבסיס לחישוב נקודות החשיפה
     S.hidden0 = tabs().reduce((n,p)=>n+S.piles[p].filter(c=>!c.u).length, 0);
   }
   goto('#game');
   buildDom(); layout(); syncEmpties(false);
-  $('#btnAuto').style.display = S.game==='klondike'?'':'none';
+  $('#btnAuto').style.display = S.game==='spider'?'none':'';
 
   if(restore){ render(); }
   else{
-    // אנימציית חלוקה
-    const sp=GEO.stock;
+    // אנימציית חלוקה — בפריסל אין חפיסה, אז מחלקים מהפינה העליונה
+    const sp=GEO.stock || GEO[founds()[3]] || {x:0,y:0};
     allCards().forEach(c=>{
       const d=els[c.i];
       d.classList.add('nomove');
@@ -1501,7 +1609,7 @@ $$('.gamecard[data-game]').forEach(b=>b.onclick=()=>{
   ac();
   const g=b.dataset.game;
   if(g==='spider') show('#ovDiff');
-  else startGame('klondike');
+  else startGame(g);
 });
 $('#btnResume').onclick=()=>{ ac(); const g=$('#btnResume').dataset.g; startGame(g,null,loadSave(g)); };
 $$('#ovDiff [data-suits]').forEach(b=>b.onclick=()=>{ hide('#ovDiff'); startGame('spider', +b.dataset.suits); });

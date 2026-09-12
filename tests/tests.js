@@ -25,7 +25,15 @@
     const all = Object.values(s.piles).flat();
     Object.keys(s.piles).forEach(k => (s.piles[k].length = 0));
     const used = place(s, (r, su) => all.find(c => c.r === r && c.s === su), all) || [];
-    all.filter(c => !used.includes(c)).forEach(c => { c.u = false; s.piles.stock.push(c); });
+
+    // Park everything the test doesn't use. FreeCell has no stock pile, so make
+    // one, and hide the parked elements so they can't skew a layout measurement.
+    if (!s.piles.stock) s.piles.stock = [];
+    const parked = all.filter(c => !used.includes(c));
+    parked.forEach(c => { c.u = false; s.piles.stock.push(c); });
+    const E = G().els();
+    parked.forEach(c => { if (E[c.i]) E[c.i].style.display = 'none'; });
+    used.forEach(c => { if (E[c.i]) E[c.i].style.display = ''; });
     s.hidden0 = s.hidden0 ?? 0;
     Object.assign(s, { bonus: 0, peak: 0, score: 0, combo: 0, fanCap: 0 });
     s.score = G().boardScore();
@@ -88,6 +96,69 @@
     G().doMove('t0', 0, 'f0');
     ok(G().canDrop([find(2, 0)], 'f0', 't1'), 'same suit continues');
     ok(!G().canDrop([find(2, 1)], 'f0', 't2'), 'other suit must be refused');
+  });
+
+  // ---------- freecell rules ------------------------------------------------
+  test('freecell deals 52 face-up cards as 7/7/7/7/6/6/6/6', () => {
+    G().startGame('freecell');
+    const cards = allCards();
+    eq(cards.length, 52, 'deck size');
+    eq(new Set(cards.map(c => c.i)).size, 52, 'distinct ids');
+    ok(cards.every(c => c.u), 'every card is face up');
+    eq(G().tabs().map(p => S().piles[p].length).join(','), '7,7,7,7,6,6,6,6', 'column sizes');
+  });
+
+  test('freecell: an empty column takes any card, unlike klondike', () => {
+    setup('freecell', 1, (s, f) => {
+      const t = f(10, 2); t.u = true; s.piles.t1.push(t); return [t];
+    });
+    ok(G().canDrop([find(10, 2)], 't0', 't1'), 'a ten may enter an empty column');
+  });
+
+  test('freecell: a free cell holds exactly one card', () => {
+    setup('freecell', 1, (s, f) => {
+      const a = f(10, 2), b = f(4, 0);
+      [a, b].forEach(c => (c.u = true));
+      s.piles.t0.push(a); s.piles.t1.push(b);
+      return [a, b];
+    });
+    ok(G().canDrop([find(10, 2)], 'e0', 't0'), 'empty cell accepts a card');
+    G().doMove('t0', 0, 'e0');
+    ok(!G().canDrop([find(4, 0)], 'e0', 't1'), 'occupied cell must refuse');
+    ok(G().canDrop([find(4, 0)], 'e1', 't1'), 'another empty cell still accepts');
+  });
+
+  test('freecell: run size is limited by free cells and empty columns', () => {
+    // 3 cards stacked, all four cells full -> only one card may move
+    setup('freecell', 1, (s, f) => {
+      const run = [f(8, 0), f(7, 1), f(6, 0)];
+      run.forEach(c => (c.u = true));
+      s.piles.t0.push(...run);
+      const nine = f(9, 1); nine.u = true; s.piles.t1.push(nine);
+      const fillers = [f(2, 0), f(3, 0), f(4, 0), f(5, 0)];
+      fillers.forEach((c, i) => { c.u = true; s.piles['e' + i].push(c); });
+      // every other column occupied so there are no empty columns either
+      const pad = [f(13, 0), f(13, 1), f(13, 2), f(13, 3), f(12, 0), f(12, 1)];
+      pad.forEach((c, i) => { c.u = true; s.piles['t' + (i + 2)].push(c); });
+      return [...run, nine, ...fillers, ...pad];
+    });
+    eq(G().canDrop([find(8, 0), find(7, 1), find(6, 0)], 't1', 't0'), false,
+      'three cards with no free cells must be refused');
+    ok(/תאים פנויים/.test(G().whyNot([find(8, 0), find(7, 1), find(6, 0)], 't1')),
+      'refusal explains the free-cell limit');
+    ok(G().canDrop([find(6, 0)], 't1', 't0') === false, 'six does not fit on nine');
+  });
+
+  test('freecell: foundations still run ace to king by suit', () => {
+    setup('freecell', 1, (s, f) => {
+      const a = f(1, 0), two = f(2, 0);
+      [a, two].forEach(c => (c.u = true));
+      s.piles.t0.push(a); s.piles.t1.push(two);
+      return [a, two];
+    });
+    ok(G().canDrop([find(1, 0)], 'f0', 't0'), 'ace opens');
+    G().doMove('t0', 0, 'f0');
+    ok(G().canDrop([find(2, 0)], 'f0', 't1'), 'two follows');
   });
 
   // ---------- spider rules --------------------------------------------------
@@ -240,7 +311,8 @@
   // ---------- layout --------------------------------------------------------
   [
     ['klondike', 1, [8, 13, 19, 24]],
-    ['spider', 1, [13, 20, 30, 40]]
+    ['spider', 1, [13, 20, 30, 40]],
+    ['freecell', 1, [12, 20, 28]]
   ].forEach(([game, suits, lengths]) => {
     lengths.forEach(n => {
       test(`${game}: a ${n}-card column compacts instead of scrolling`, () => {
