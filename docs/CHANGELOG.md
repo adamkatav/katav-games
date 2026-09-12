@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.11.0 (2026-09-12)
+
+### Feat
+
+- **2048**: add 2048, with the score kept honest
+
 ## v0.10.0 (2026-09-12)
 
 ### Feat
