@@ -2,7 +2,9 @@
 name = "cz_conventional_commits"
 version = "0.8.0"
 tag_format = "v$version"
-version_files = ["index.html:APP_VERSION"]
+# package.json is the single source of truth: vite.config.ts reads it and
+# defines __APP_VERSION__, so the version on screen cannot drift from the tag.
+version_files = ["package.json:\"version\""]
 update_changelog_on_bump = true
 changelog_incremental = true
 changelog_file = "docs/CHANGELOG.md"
