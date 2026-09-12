@@ -828,6 +828,23 @@ function canDrop(run, destPile, fromPile){
     return t.u && t.r===c.r+1;
   }
 }
+/* מסביר בעברית למה מהלך נדחה. סירוב שקט מבלבל — במיוחד כשסימון היעדים כבוי,
+   ואז אין שום רמז למה הקלף פשוט לא זז. מחזיר מחרוזת ריקה כשאין מה להסביר. */
+function whyNot(run, destPile){
+  const t=top(destPile);
+  if(destPile[0]==='f'){
+    if(run.length>1) return 'לערימת הסיום מעבירים קלף אחד בכל פעם';
+    return t ? 'בערימת הסיום ממשיכים באותה צורה, קלף אחרי קלף'
+             : 'ערימת הסיום מתחילה באס';
+  }
+  if(destPile[0]==='c') return 'הערימות למעלה מתמלאות לבד כשמשלימים סדרה';
+  if(!t) return S.game==='klondike' ? 'בטור ריק אפשר להניח רק מלך' : '';
+  if(!t.u) return 'צריך להפוך קודם את הקלף הזה';
+  return S.game==='klondike'
+    ? 'צריך להניח על קלף גדול באחד ובצבע הפוך'
+    : 'צריך להניח על קלף גדול באחד';
+}
+
 function legalTargets(run, fromPile){
   return [...tabs(), ...(S.game==='klondike'?founds():[])]
     .filter(p=>canDrop(run,p,fromPile));
@@ -1177,7 +1194,13 @@ board.addEventListener('pointerup', e=>{
   const dest=pileAt(e.clientX-r.left, e.clientY-r.top);
   if(dest && canDrop(d.cards, dest, d.loc.pile)){
     pushUndo(); doMove(d.loc.pile, d.loc.idx, dest);
-  }else{ SND.bad(); sel=null; render(); }
+  }else{
+    if(dest && dest!==d.loc.pile && dest!=='stock' && dest!=='waste'){
+      const why=whyNot(d.cards, dest);
+      if(why) toast(why);
+    }
+    SND.bad(); sel=null; render();
+  }
 });
 board.addEventListener('pointercancel', ()=>{
   if(drag){ drag.cards.forEach(c=>els[c.i].classList.remove('drag')); drag=null; render(); }
@@ -1217,6 +1240,14 @@ function handleClick(loc){
     if(canDrop(run, loc.pile, sel.pile)){
       const from=sel; sel=null;
       pushUndo(); doMove(from.pile, from.idx, loc.pile);
+      return;
+    }
+    // נלחץ מקום ריק שאי אפשר להניח בו — מסבירים ומשאירים את הבחירה,
+    // כדי שאפשר יהיה פשוט ללחוץ על היעד הנכון בלי לבחור מחדש.
+    if(loc.idx<0 && loc.pile!=='stock' && loc.pile!=='waste'){
+      const why=whyNot(run, loc.pile);
+      if(why) toast(why);
+      SND.bad();
       return;
     }
   }
