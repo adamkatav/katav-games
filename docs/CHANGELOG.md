@@ -10,9 +10,16 @@ uvx --from commitizen cz changelog      # regenerate without bumping
 
 ## v0.12.0 (2026-09-12)
 
+**Renamed to `katav-games`.** It is a game box, not a solitaire app — six games now, only
+three of them card games. The site moved to <https://adamkatav.github.io/katav-games/>.
+(The rename landed inside the commit below rather than its own; noted here so the record
+is accurate.)
+
 ### Feat
 
 - **minesweeper**: use the classic Beginner, Intermediate and Expert boards
+- **sudoku**, **2048**, **minesweeper**: three new games on a shared grid engine
+- **docs**: README rewritten for the TypeScript build
 
 ## v0.11.0 (2026-09-12)
 
