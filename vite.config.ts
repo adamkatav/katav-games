@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Served from https://adamkatav.github.io/katav-solitaire/
-const base = process.env.BASE_PATH ?? '/katav-solitaire/';
+// Served from https://adamkatav.github.io/katav-games/
+const base = process.env.BASE_PATH ?? '/katav-games/';
 
 const { version } = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
 

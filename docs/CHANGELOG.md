@@ -104,7 +104,7 @@ file is kept at legacy/ for reference.
 
 ## v0.1.0 (2026-09-12)
 
-First working version, published at <https://adamkatav.github.io/katav-solitaire/>.
+First working version, published at <https://adamkatav.github.io/katav-games/>.
 
 ### Feat
 

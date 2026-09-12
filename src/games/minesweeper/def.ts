@@ -24,17 +24,18 @@ export interface MinesweeperState {
 }
 
 const DIFFICULTIES: readonly Difficulty[] = [
-  { id: 'easy', label: 'קל · 8×8', note: 'מומלץ להתחלה' },
-  { id: 'medium', label: 'בינוני · 12×12' },
-  { id: 'hard', label: 'קשה · 16×16' },
+  { id: 'easy', label: 'קל · 9×9', note: 'מומלץ להתחלה' },
+  { id: 'medium', label: 'בינוני · 16×16' },
+  { id: 'hard', label: 'קשה · 30×16' },
 ];
 
-// Square boards throughout: the classic 30x16 expert board needs a wide screen,
-// and this has to work on a phone.
+// The classic Beginner / Intermediate / Expert boards. Expert is 30 columns
+// wide, so on a phone the grid module drops to its minimum cell size and the
+// board scrolls sideways — the honest trade for keeping the real sizes.
 const SIZES: Record<string, { cols: number; rows: number; mineCount: number }> = {
-  easy: { cols: 8, rows: 8, mineCount: 10 },
-  medium: { cols: 12, rows: 12, mineCount: 25 },
-  hard: { cols: 16, rows: 16, mineCount: 50 },
+  easy: { cols: 9, rows: 9, mineCount: 10 },
+  medium: { cols: 16, rows: 16, mineCount: 40 },
+  hard: { cols: 30, rows: 16, mineCount: 99 },
 };
 
 const boardOf = (s: MinesweeperState) =>

@@ -25,7 +25,7 @@ const cardWidth = (page: Page): Promise<number> =>
     getComputedStyle(document.querySelector('.board')!).getPropertyValue('--card-w'), 10));
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/katav-solitaire/');
+  await page.goto('/katav-games/');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForSelector('.game-card');
@@ -138,7 +138,7 @@ test('a card can be placed on an empty column by clicking', async ({ page }) => 
 
 test('minesweeper: first click is safe and the mode switch works', async ({ page }) => {
   await start(page, 'minesweeper', 'easy');
-  expect(await page.locator('.cell').count()).toBe(64);
+  expect(await page.locator('.cell').count()).toBe(81);   // classic 9x9 Beginner
 
   // No undo button: a revealed cell cannot honestly be taken back.
   await expect(page.locator('.bar .btn', { hasText: 'ביטול' })).toHaveCount(0);

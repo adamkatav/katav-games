@@ -1,111 +1,126 @@
-# משחקי קלפים — Katav game box
+# משחקי קלפים — the Katav game box
 
-Hebrew card games built for one player: an elderly speaker, head of the Katav family, on
-a Windows PC and a phone. Currently Klondike (סוליטר) and Spider (סוליטר עכביש), in one
-self-contained HTML file that works offline.
+Hebrew games built for one player: an elderly speaker, head of the Katav family, on a
+Windows PC and a phone. Six games so far — Klondike, FreeCell, Spider, Minesweeper,
+Sudoku and 2048 — sharing one shell, one scoring engine and one visual language.
 
-**▶ Play: <https://adamkatav.github.io/katav-solitaire/>**
+**▶ Play: <https://adamkatav.github.io/katav-games/>**
+
+Installable as a PWA, works offline, no accounts, no ads, no network calls.
 
 ---
 
-## Running it
+## Getting started
 
-**Locally** — double-click `index.html`. Everything (code, artwork, sounds) is embedded in
-that one file, so it works with no internet and can be copied anywhere on its own.
+```bash
+npm install
+npm run dev        # dev server with hot reload
+npm run build      # typecheck + production build into dist/
+npm test           # unit tests (fast)
+npm run test:e2e   # browser tests on desktop and phone viewports
+```
 
-To put it on someone's desktop: right-click `index.html` → Send to → Desktop (create
-shortcut), rename it `קלפים`, and give it the crest icon.
+Requires Node 20+. Nothing else: no global installs, no database, no services.
 
-**Installed** — open the URL above in Edge or Chrome and choose **Install app**. That gives
-a real desktop icon and a full-screen window with no address bar or tabs, which is worth
-doing: browser chrome is a common source of confusion.
+## Installing it for someone
 
-## Repository layout
+Open the URL above in Edge or Chrome and choose **Install app**. That gives a real desktop
+icon and a full-screen window with no address bar and no tabs — worth doing, because
+browser chrome is a common source of confusion for the player this is built for.
+
+A new version is picked up on the **next launch**, never by reloading mid-game.
+
+## Layout
 
 ```
-index.html              the whole game — open this
-manifest.json           lets browsers install it as an app
-icon.svg                app icon (generated from the crest)
+src/
+  core/         the engine: commit, undo, derived score, streak, timer, saves
+    types.ts      GameDef, GameView, ViewHost — the contract every game implements
+    engine.ts     Session: the one place a move is applied
+    score.ts      peak/streak/multiplier rules, shared by every game
+    rng.ts        seeded PRNG — every deal is reproducible from its seed
+  ui/           shell, overlays, synthesised sound, Hebrew strings (i18n.ts)
+  games/
+    cards/        deck, rules, art, layout, the shared card board
+      klondike.ts  freecell.ts  spider.ts      ← rules only
+    grid/         cell geometry and the shared grid board
+    minesweeper/  solver.ts  generate.ts  def.ts
+    sudoku/       solver.ts  generate.ts  def.ts
+    g2048/        logic.ts  def.ts
+  styles/
 
-docs/
-  DESIGN.md             design principles for the game box — read before adding a game
-  GAMES.md              roadmap: Minesweeper and Sudoku generation, plus what else fits
-  CHANGELOG.md          maintained by commitizen
-  ART-PROMPTS.md        the image prompts the card art was generated from
-
-art/                    source artwork, embedded into index.html (not loaded at runtime)
-  source/               the original generated sheet, kept for re-cutting
-
-tools/                  re-cut, compress and re-embed the artwork; build the icon
-tests/                  browser test suite + headless CI runner
-.github/workflows/      runs the suite on every push
+art/            source PNGs, hashed and precached at build time
+tools/          re-cut, compress and re-embed the artwork; build the icon
+tests/unit/     rules, scoring invariants, generators — milliseconds
+tests/e2e/      layout, real input, service worker — Playwright
+docs/           ARCHITECTURE · DESIGN · GAMES · CHANGELOG · ART-PROMPTS
+legacy/         the original single-file version, kept for reference
 ```
+
+## How a game is put together
+
+A game supplies a `GameDef`: `create`, `score`, `isWon`, `hint`, `par`, plus a view. It
+never owns the score, the undo stack, the timer, the streak, the save file or the win
+decision — the engine does. Because `score(state)` is the only way to produce a score,
+point-farming exploits are unrepresentable rather than merely forbidden.
+
+Adding a game means writing a def, reusing `games/cards/view.ts` or `games/grid/model.ts`,
+and adding one line to `games/registry.ts`. Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+for the seam and [docs/DESIGN.md](docs/DESIGN.md) for the rules that keep the games feeling
+like one product — the reasoning is attached so the deliberate-looking choices don't get
+undone by accident.
 
 ## Tests
 
-Open **`tests/run.html`** in any browser. No tooling, no install — it loads the game in an
-iframe and prints a pass/fail list. The page title becomes `PASS (n)` or `FAIL (n)`.
+Split by what each tool is good at:
 
-The same suite runs headlessly in CI on every push (`.github/workflows/tests.yml`). To run
-it that way locally you need Node:
+- **Vitest** — rules, scoring invariants, streak behaviour, and the generators. The
+  Minesweeper generator is checked for being solvable by logic alone with a guaranteed-safe
+  first click; the Sudoku generator for having exactly one solution. Both are properties,
+  run over many seeds, and finish in about a second.
+- **Playwright** — layout that must not scroll, real clicks, the PWA. Desktop and phone.
 
-```bash
-npm install --no-save playwright && npx playwright install chromium
-python -m http.server 8791          # in another terminal
-node tests/ci.js
-```
-
-Tests reach the game through a seam exposed only when the page is loaded with `?test=1`,
-so the normal game carries no debug surface.
+Tests reach the app through `window.__shell`, which is read-only and grants nothing a
+player lacks. **Drive real clicks where you can:** two shipped bugs hid behind tests that
+called a handler directly and so never exercised the DOM path.
 
 ## Artwork
 
-`art/` holds the source PNGs, generated with Gemini from the prompts in
+`art/` holds source PNGs generated with Gemini from the prompts in
 [docs/ART-PROMPTS.md](docs/ART-PROMPTS.md). One court figure per rank is shared across all
-four suits — exactly how a real deck works, where only the index and pip change colour.
-The back is the Katav family crest.
+four suits — as in a real deck, where only the index and pip change colour. The back is the
+Katav family crest.
 
-To change the artwork:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\slice-art.ps1     # re-cut the 2x2 sheet
-uv run --with pillow python tools\rebuild_back.py                # centre the card back
-uv run --with pillow python tools\extract_crest.py               # crest for effects
-uv run --with pillow python tools\make_icon.py                   # app icon
-uv run --with pillow python tools\optimize_art.py                # quantise
-powershell -ExecutionPolicy Bypass -File tools\embed-art.ps1     # embed into index.html
-```
-
-`optimize_art.py` matters: it quantises the flat vector-style art to a small palette,
-taking the assets from ~1.1 MB to ~100 KB with no visible loss. That is what keeps the
-single embedded file small.
-
-## Commits and changelog
-
-[Conventional Commits](https://www.conventionalcommits.org/), with
-[commitizen](https://commitizen-tools.github.io/commitizen/) via `uvx`. Config in
-`.cz.toml`.
+To regenerate after changing the art:
 
 ```powershell
-uvx --from commitizen cz commit      # interactive
-uvx --from commitizen cz bump --yes  # bump version, update changelog, tag
+powershell -ExecutionPolicy Bypass -File tools\slice-art.ps1   # re-cut a 2x2 sheet
+uv run --with pillow python tools\rebuild_back.py              # centre the card back
+uv run --with pillow python tools\extract_crest.py             # crest for effects
+uv run --with pillow python tools\make_icon.py                 # app icon
+uv run --with pillow python tools\optimize_art.py              # quantise
 ```
 
-Types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`.
-Scopes: `klondike`, `spider`, `score`, `input`, `layout`, `cards`, `anim`, `hint`, `save`,
-`pwa`, `a11y`, `ui`, `game`.
+`optimize_art.py` earns its place: it takes the assets from ~1.1 MB to ~100 KB with no
+visible loss, because flat vector-style art quantises extremely well.
 
-`cz bump` also rewrites `APP_VERSION` in `index.html` (via `version_files`), so the version
-shown on screen can never drift from the tag.
+## Commits and releases
 
-> **Windows gotcha:** don't write a commit-message file with `Set-Content -Encoding utf8`
-> in PowerShell 5.1 — it prepends a BOM and `cz check` then rejects even a valid message.
-> Use `[IO.File]::WriteAllText($p, $msg, (New-Object Text.UTF8Encoding $false))`, and avoid
-> double quotes in `git commit -m` on Windows, where they break argv splitting.
+[Conventional Commits](https://www.conventionalcommits.org/) with
+[commitizen](https://commitizen-tools.github.io/commitizen/) via `uvx`; config in `.cz.toml`.
 
-## Adding a game
+```powershell
+uvx --from commitizen cz bump --yes   # bump, update docs/CHANGELOG.md, tag
+```
 
-Read [docs/DESIGN.md](docs/DESIGN.md) first — it is the rules that make these feel like one
-product, with the reasoning attached so the deliberate-looking oddities don't get undone.
-[docs/GAMES.md](docs/GAMES.md) has the roadmap and the generation algorithms for the next
-two.
+`cz bump` rewrites the version in `package.json`, which `vite.config.ts` reads to define
+`__APP_VERSION__` — so the version shown on screen cannot drift from the tag.
+
+CI typechecks, unit-tests, builds, runs the browser tests, and deploys to Pages **only on
+green**.
+
+> **Windows gotchas, both of which cost real time here:**
+> - Don't round-trip a file with `Get-Content | Set-Content` in PowerShell 5.1 — it mangles
+>   Hebrew and emoji into mojibake. Use `[IO.File]::WriteAllText($p, $s, (New-Object Text.UTF8Encoding $false))`.
+> - Don't put double quotes in `git commit -m` on Windows; they break argv splitting. Write
+>   the message to a BOM-less file and use `git commit -F`.

@@ -18,7 +18,7 @@ export default defineConfig({
     // Bind explicitly: vite defaults to localhost, which on Windows can resolve
     // to ::1 while Playwright polls 127.0.0.1 and then times out waiting.
     command: 'npx vite preview --port 4173 --strictPort --host 127.0.0.1',
-    url: 'http://127.0.0.1:4173/katav-solitaire/',
+    url: 'http://127.0.0.1:4173/katav-games/',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

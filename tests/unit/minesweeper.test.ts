@@ -5,10 +5,11 @@ import { isSolvable, deduce, flood, adjacentCount } from '../../src/games/minesw
 import { minesweeperSpec, type MinesweeperState } from '../../src/games/minesweeper/def';
 import { neighbours } from '../../src/games/grid/layout';
 
+// the classic Beginner / Intermediate / Expert boards
 const SIZES = {
-  easy: { cols: 8, rows: 8, mineCount: 10 },
-  medium: { cols: 12, rows: 12, mineCount: 25 },
-  hard: { cols: 16, rows: 16, mineCount: 50 },
+  easy: { cols: 9, rows: 9, mineCount: 10 },
+  medium: { cols: 16, rows: 16, mineCount: 40 },
+  hard: { cols: 30, rows: 16, mineCount: 99 },
 };
 
 describe('solver', () => {
