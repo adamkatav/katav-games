@@ -14,6 +14,12 @@ shortcut), then rename the shortcut to `קלפים` and give it a card icon.
 
 **On the web** — see "GitHub Pages" below.
 
+## Design
+
+[DESIGN.md](DESIGN.md) holds the game box's design principles — the rules that make these
+games feel like one product, and the checklist for adding another one (Minesweeper,
+Memory, FreeCell) so it arrives feeling like it came from the same box.
+
 ## Design decisions
 
 These were deliberate, for an 80-something player on a Windows PC and a phone:
