@@ -8,6 +8,18 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.8.0 (2026-09-12)
+
+### BREAKING CHANGE
+
+- the game is no longer a single hand-editable index.html.
+It builds with Vite; index.html is now the entry point and the previous
+file is kept at legacy/ for reference.
+
+### Refactor
+
+- rebuild on TypeScript and Vite around a game engine
+
 ## v0.7.1 (2026-09-12)
 
 ### Fix
