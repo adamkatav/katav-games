@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#15603f">
+<title>משחקי קלפים</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+:root{
+  --felt1:#1d7a52; --felt2:#0f5236;
+  --ink:#12241c;
+  --panel:#ffffff;
+  --gold:#ffc531;
+  --btn:#0d5fa8; --btn2:#0a4c86;
+  --good:#1f8a4c;
+  --warn:#c0392b;
+  --radius:14px;
+  --cw:100px; --ch:145px;
+  --font: "Segoe UI", "Noto Sans Hebrew", "Arial Hebrew", Arial, system-ui, sans-serif;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;margin:0;}
+body{
+  font-family:var(--font);
+  background:radial-gradient(ellipse at 50% 0%, var(--felt1), var(--felt2) 75%);
+  color:#fff; overflow:hidden; touch-action:manipulation;
+  font-size:20px;
+}
+button{font-family:inherit;}
+
+/* ---------- generic big button ---------- */
+.btn{
+  background:linear-gradient(#1877cc,var(--btn));
+  color:#fff; border:none; border-radius:var(--radius);
+  padding:14px 22px; font-size:21px; font-weight:700;
+  cursor:pointer; box-shadow:0 4px 0 #073a66, 0 6px 14px rgba(0,0,0,.3);
+  transition:transform .08s, box-shadow .08s, filter .15s;
+  display:inline-flex; align-items:center; gap:10px; justify-content:center;
+  line-height:1.2;
+}
+.btn:hover{filter:brightness(1.1);}
+.btn:active{transform:translateY(4px); box-shadow:0 0 0 #073a66, 0 2px 6px rgba(0,0,0,.3);}
+.btn[disabled]{opacity:.42; cursor:default; filter:grayscale(.6);}
+.btn[disabled]:active{transform:none; box-shadow:0 4px 0 #073a66;}
+.btn.ghost{background:linear-gradient(#5c6b78,#44515c); box-shadow:0 4px 0 #2a333b,0 6px 14px rgba(0,0,0,.3);}
+.btn.ghost:active{box-shadow:0 0 0 #2a333b;}
+.btn.green{background:linear-gradient(#28a55f,#1a7c45); box-shadow:0 4px 0 #0f5730,0 6px 14px rgba(0,0,0,.3);}
+.btn.green:active{box-shadow:0 0 0 #0f5730;}
+.btn.red{background:linear-gradient(#e05545,#b7382a); box-shadow:0 4px 0 #7d2419,0 6px 14px rgba(0,0,0,.3);}
+.btn.red:active{box-shadow:0 0 0 #7d2419;}
+.btn .ico{font-size:1.25em; line-height:1;}
+
+/* ---------- screens ---------- */
+.screen{position:fixed; inset:0; display:none; flex-direction:column;}
+.screen.on{display:flex;}
+
+/* ---------- home ---------- */
+#home{align-items:center; justify-content:center; overflow:auto; padding:24px 16px;}
+.home-wrap{width:100%; max-width:640px; text-align:center; margin:auto;}
+.title{
+  font-size:clamp(38px,9vw,64px); font-weight:800; margin:0 0 6px;
+  text-shadow:0 4px 0 rgba(0,0,0,.28); letter-spacing:1px;
+}
+.sub{font-size:clamp(18px,4.2vw,24px); opacity:.9; margin:0 0 26px;}
+.gamecard{
+  width:100%; display:flex; align-items:center; gap:18px; text-align:right; direction:rtl;
+  background:linear-gradient(180deg,#ffffff,#eef3f7); color:var(--ink);
+  border:none; border-radius:20px; padding:20px 22px; margin-bottom:16px;
+  cursor:pointer; box-shadow:0 6px 0 #b9c6cf, 0 10px 22px rgba(0,0,0,.32);
+  transition:transform .1s, box-shadow .1s;
+}
+.gamecard:active{transform:translateY(5px); box-shadow:0 1px 0 #b9c6cf,0 4px 10px rgba(0,0,0,.3);}
+.gamecard .emoji{font-size:46px; line-height:1;}
+.gamecard .txt{flex:1; display:block;}
+.gamecard .n,.gamecard .d,.gamecard .best{display:block;}
+.gamecard .n{font-size:30px; font-weight:800;}
+.gamecard .d{font-size:18px; opacity:.72; margin-top:3px;}
+.gamecard .best{font-size:16px; color:#8a6d00; font-weight:700; margin-top:4px;}
+.gamecard .best:empty{display:none;}
+.home-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:10px;}
+
+/* ---------- game screen ---------- */
+#game{background:transparent;}
+.bar{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:8px 10px; background:rgba(0,0,0,.28); backdrop-filter:blur(4px);
+  border-bottom:2px solid rgba(255,255,255,.13);
+}
+.bar .btn{padding:10px 14px; font-size:18px; border-radius:11px; box-shadow:0 3px 0 #073a66;}
+.bar .btn.ghost{box-shadow:0 3px 0 #2a333b;}
+.bar .btn.green{box-shadow:0 3px 0 #0f5730;}
+.bar .btn:active{transform:translateY(3px); box-shadow:none;}
+.stats{
+  margin-inline-start:auto; display:flex; gap:14px; align-items:center;
+  font-size:19px; font-weight:700; white-space:nowrap;
+}
+.stat b{color:var(--gold); font-variant-numeric:tabular-nums;}
+#boardWrap{flex:1; overflow:auto; position:relative; padding:10px;}
+#board{position:relative; margin:0 auto; direction:ltr;}
+
+/* ---------- piles & cards ---------- */
+.slot{
+  position:absolute; width:var(--cw); height:var(--ch); border-radius:calc(var(--cw)*.09);
+  border:3px dashed rgba(255,255,255,.34); background:rgba(0,0,0,.14);
+  display:flex; align-items:center; justify-content:center;
+  font-size:calc(var(--cw)*.42); color:rgba(255,255,255,.45); user-select:none;
+}
+.slot.target{border-color:var(--gold); background:rgba(255,197,49,.22); animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,197,49,.65);}50%{box-shadow:0 0 0 12px rgba(255,197,49,0);}}
+
+.card{
+  position:absolute; width:var(--cw); height:var(--ch);
+  transition:transform .26s cubic-bezier(.2,.8,.3,1);
+  will-change:transform; perspective:900px; user-select:none;
+}
+.card.nomove{transition:none;}
+.card .inner{
+  position:relative; width:100%; height:100%;
+  transform-style:preserve-3d; transform:rotateY(180deg);
+  transition:transform .38s cubic-bezier(.3,.7,.3,1);
+}
+.card.up .inner{transform:rotateY(0deg);}
+.card .face{
+  position:absolute; inset:0; border-radius:calc(var(--cw)*.09);
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  box-shadow:0 2px 5px rgba(0,0,0,.42);
+}
+.card .front{
+  background:#fff; color:#111;
+  border:calc(var(--cw)*.018) solid #d8dee3;
+  display:flex; align-items:center; justify-content:center;
+}
+.card .back{
+  transform:rotateY(180deg);
+  background:var(--backart) center/100% 100% no-repeat, #16255c;
+  border:calc(var(--cw)*.035) solid #f4f1e6;
+}
+.card .front svg{width:100%; height:100%; display:block;}
+.card.sel .front{outline:calc(var(--cw)*.06) solid var(--gold); outline-offset:-1px; box-shadow:0 0 22px 5px rgba(255,197,49,.75);}
+.card.target .front{outline:calc(var(--cw)*.055) solid var(--gold); animation:pulse 1s infinite;}
+.card.hint .front{animation:hintflash .55s 4;}
+@keyframes hintflash{0%,100%{box-shadow:0 2px 5px rgba(0,0,0,.42);}50%{box-shadow:0 0 0 6px var(--gold),0 0 26px 8px rgba(255,197,49,.8);}}
+.card.drag{transition:none; z-index:9000 !important; filter:drop-shadow(0 12px 14px rgba(0,0,0,.5));}
+.card.pop{animation:pop .38s ease;}
+@keyframes pop{0%{}40%{transform:scale(1.16);}100%{}}
+
+/* floating score popups */
+.pop-score{
+  position:absolute; font-weight:900; font-size:26px; color:var(--gold);
+  text-shadow:0 2px 4px rgba(0,0,0,.7); pointer-events:none; z-index:9500;
+  animation:rise 1.05s ease-out forwards;
+}
+@keyframes rise{0%{opacity:0; transform:translateY(0) scale(.6);}
+                18%{opacity:1; transform:translateY(-10px) scale(1.15);}
+                100%{opacity:0; transform:translateY(-70px) scale(1);}}
+
+/* ---------- overlays ---------- */
+.ov{position:fixed; inset:0; background:rgba(4,20,14,.74); backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center; padding:18px; z-index:10000; overflow:auto;}
+.ov.on{display:flex;}
+.panel{
+  background:linear-gradient(180deg,#ffffff,#eef2f6); color:var(--ink);
+  border-radius:22px; padding:26px; width:100%; max-width:560px; margin:auto;
+  box-shadow:0 18px 50px rgba(0,0,0,.55); animation:drop .3s cubic-bezier(.2,1.2,.4,1);
+  text-align:center;
+}
+@keyframes drop{from{opacity:0; transform:translateY(-26px) scale(.94);}to{opacity:1;}}
+.panel h2{margin:0 0 8px; font-size:32px;}
+.panel p{font-size:19px; line-height:1.55; margin:8px 0;}
+.panel .row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:18px;}
+.opt{display:flex; flex-direction:column; gap:10px; margin:14px 0; text-align:right;}
+.opt .lbl{font-size:19px; font-weight:800;}
+.seg{display:flex; gap:8px; flex-wrap:wrap;}
+.seg button{
+  flex:1; min-width:110px; padding:13px 10px; font-size:18px; font-weight:700;
+  border:3px solid #c3ced7; background:#fff; color:#34434e; border-radius:12px; cursor:pointer;
+}
+.seg button.on{background:var(--btn); border-color:#073a66; color:#fff;}
+.rules{text-align:right; font-size:18px; line-height:1.6;}
+.rules h3{font-size:23px; margin:18px 0 6px; color:#0d5fa8;}
+.rules ul{margin:6px 0; padding-inline-start:22px;}
+.rules li{margin:5px 0;}
+
+/* ---------- win screen ---------- */
+#winPanel{max-width:520px;}
+.stars{display:flex; justify-content:center; gap:6px; margin:14px 0 6px; direction:ltr;}
+.star{font-size:46px; color:#d6dde3; transform:scale(.3); opacity:0;}
+.star.lit{color:var(--gold); text-shadow:0 0 16px rgba(255,197,49,.9);}
+.star.show{animation:starPop .5s cubic-bezier(.2,1.6,.4,1) forwards;}
+@keyframes starPop{0%{transform:scale(.3) rotate(-40deg); opacity:0;}
+                   60%{transform:scale(1.35) rotate(8deg); opacity:1;}
+                   100%{transform:scale(1) rotate(0); opacity:1;}}
+.rating{font-size:22px; font-weight:800; min-height:30px; color:#0d5fa8;}
+.finalScore{font-size:46px; font-weight:900; color:#1a7c45; margin:6px 0 0; font-variant-numeric:tabular-nums;}
+.newbest{display:none; font-size:19px; font-weight:800; color:#c07800;}
+.newbest.on{display:block; animation:pulse2 1s infinite;}
+@keyframes pulse2{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+.summary{display:flex; justify-content:center; gap:22px; font-size:18px; margin-top:10px; opacity:.85;}
+#confetti{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:10500; display:none;}
+
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.85); padding:14px 26px; border-radius:30px; font-size:20px;
+  font-weight:700; z-index:11000; opacity:0; transition:opacity .25s; pointer-events:none;
+}
+.toast.on{opacity:1;}
+
+@media (max-width:900px){
+  .stats{width:100%; margin:4px 0 0; justify-content:space-around; order:9;}
+}
+@media (max-width:620px){
+  .bar .btn{padding:9px 11px; font-size:16px; gap:6px;}
+  .stats{font-size:16px; gap:10px; width:100%; margin:4px 0 0; justify-content:space-around;}
+  .panel{padding:20px 16px;}
+  .panel h2{font-size:27px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div class="screen on" id="home">
+  <div class="home-wrap">
+    <h1 class="title">משחקי קלפים</h1>
+    <p class="sub">בחרו משחק כדי להתחיל</p>
+
+    <button class="gamecard" id="btnResume" style="display:none">
+      <span class="emoji">▶️</span>
+      <span class="txt"><span class="n">המשך משחק</span><span class="d" id="resumeDesc"></span></span>
+    </button>
+
+    <button class="gamecard" data-game="klondike">
+      <span class="emoji">🂡</span>
+      <span class="txt">
+        <span class="n">סוליטר</span>
+        <span class="d">המשחק הקלאסי — לאסוף מאס עד מלך</span>
+        <span class="best" id="bestK"></span>
+      </span>
+    </button>
+
+    <button class="gamecard" data-game="spider">
+      <span class="emoji">🕷️</span>
+      <span class="txt">
+        <span class="n">סוליטר עכביש</span>
+        <span class="d">לסדר סדרות ממלך עד אס</span>
+        <span class="best" id="bestS"></span>
+      </span>
+    </button>
+
+    <div class="home-row">
+      <button class="btn ghost" id="btnHelpHome"><span class="ico">❓</span> איך משחקים</button>
+      <button class="btn ghost" id="btnSetHome"><span class="ico">⚙️</span> הגדרות</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="screen" id="game">
+  <div class="bar">
+    <button class="btn ghost" id="btnMenu"><span class="ico">🏠</span> תפריט</button>
+    <button class="btn" id="btnUndo"><span class="ico">↩️</span> ביטול</button>
+    <button class="btn green" id="btnHint"><span class="ico">💡</span> רמז</button>
+    <button class="btn green" id="btnAuto" style="display:none"><span class="ico">⬆️</span> אסוף הכל</button>
+    <button class="btn red" id="btnNew"><span class="ico">🔄</span> משחק חדש</button>
+    <button class="btn ghost" id="btnSet"><span class="ico">⚙️</span></button>
+    <div class="stats">
+      <span class="stat">ניקוד <b id="sScore">0</b></span>
+      <span class="stat">מהלכים <b id="sMoves">0</b></span>
+      <span class="stat">זמן <b id="sTime">0:00</b></span>
+      <span class="stat" id="sExtraWrap">סדרות <b id="sExtra">0</b>/8</span>
+    </div>
+  </div>
+  <div id="boardWrap"><div id="board"></div></div>
+</div>
+
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<!-- ============ DIFFICULTY ============ -->
+<div class="ov" id="ovDiff"><div class="panel">
+  <h2>🕷️ סוליטר עכביש</h2>
+  <p>בחרו רמת קושי</p>
+  <div class="row" style="flex-direction:column">
+    <button class="btn green" data-suits="1" style="font-size:23px">קל · צבע אחד<br><span style="font-size:16px;font-weight:600;opacity:.85">מומלץ להתחלה</span></button>
+    <button class="btn" data-suits="2" style="font-size:23px">בינוני · שני צבעים</button>
+    <button class="btn red" data-suits="4" style="font-size:23px">קשה · ארבעה צבעים</button>
+    <button class="btn ghost" data-close>ביטול</button>
+  </div>
+</div></div>
+
+<!-- ============ CONFIRM ============ -->
+<div class="ov" id="ovConfirm"><div class="panel">
+  <h2 id="cfTitle">בטוחים?</h2>
+  <p id="cfText"></p>
+  <div class="row">
+    <button class="btn red" id="cfYes">כן</button>
+    <button class="btn ghost" id="cfNo">לא, חזרה למשחק</button>
+  </div>
+</div></div>
+
+<!-- ============ WIN ============ -->
+<div class="ov" id="ovWin"><div class="panel" id="winPanel">
+  <h2 id="winTitle">🎉 כל הכבוד!</h2>
+  <div class="stars" id="starRow"></div>
+  <div class="rating" id="ratingText"></div>
+  <div class="finalScore" id="winScore">0</div>
+  <div class="newbest" id="newBest">⭐ שיא חדש! ⭐</div>
+  <div class="summary">
+    <span>מהלכים: <b id="winMoves">0</b></span>
+    <span>זמן: <b id="winTime">0:00</b></span>
+  </div>
+  <div class="row">
+    <button class="btn green" id="winAgain">🔄 עוד משחק</button>
+    <button class="btn ghost" id="winMenu">🏠 תפריט</button>
+  </div>
+</div></div>
+
+<!-- ============ STUCK ============ -->
+<div class="ov" id="ovStuck"><div class="panel">
+  <h2>אין יותר מהלכים</h2>
+  <p>אפשר לבטל כמה מהלכים אחורה ולנסות דרך אחרת, או להתחיל משחק חדש.</p>
+  <div class="row">
+    <button class="btn" id="stUndo">↩️ ביטול מהלך</button>
+    <button class="btn red" id="stNew">🔄 משחק חדש</button>
+    <button class="btn ghost" data-close>סגירה</button>
+  </div>
+</div></div>
+
+<!-- ============ SETTINGS ============ -->
+<div class="ov" id="ovSet"><div class="panel">
+  <h2>⚙️ הגדרות</h2>
+  <div class="opt">
+    <span class="lbl">גודל הקלפים</span>
+    <div class="seg" data-set="size">
+      <button data-v="1">רגיל</button>
+      <button data-v="1.35">גדול</button>
+      <button data-v="1.7">ענק</button>
+    </div>
+  </div>
+  <div class="opt">
+    <span class="lbl">כיוון הלוח</span>
+    <div class="seg" data-set="rtl">
+      <button data-v="1">מימין לשמאל</button>
+      <button data-v="0">משמאל לימין</button>
+    </div>
+  </div>
+  <div class="opt">
+    <span class="lbl">צלילים</span>
+    <div class="seg" data-set="sound">
+      <button data-v="1">🔊 פועלים</button>
+      <button data-v="0">🔇 כבויים</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="btn ghost" id="setHelp">❓ איך משחקים</button>
+    <button class="btn green" data-close>סגירה</button>
+  </div>
+</div></div>
+
+<!-- ============ HELP ============ -->
+<div class="ov" id="ovHelp"><div class="panel">
+  <h2>❓ איך משחקים</h2>
+  <div class="rules">
+    <h3>להזיז קלף</h3>
+    <ul>
+      <li>לוחצים על קלף — הוא נדלק בזהב.</li>
+      <li>כל המקומות שאפשר להניח בהם את הקלף יהבהבו בזהב.</li>
+      <li>לוחצים על המקום הרצוי — והקלף עובר לשם.</li>
+      <li>לחיצה נוספת על אותו קלף מבטלת את הבחירה.</li>
+      <li>מי שרוצה — אפשר גם פשוט לגרור את הקלף עם העכבר או עם האצבע.</li>
+    </ul>
+    <h3>כפתורים</h3>
+    <ul>
+      <li><b>💡 רמז</b> — מראה מהלך אפשרי.</li>
+      <li><b>↩️ ביטול</b> — מבטל אחורה, בלי הגבלה.</li>
+      <li><b>⬆️ אסוף הכל</b> — שולח לבד את כל הקלפים שאפשר לערימות הסיום.</li>
+    </ul>
+    <h3>🂡 סוליטר</h3>
+    <ul>
+      <li>המטרה: לבנות בארבע ערימות הסיום למעלה סדרה מ<b>אס</b> ועד <b>מלך</b>, כל ערימה בצורה אחת (לב, יהלום, עלה או תלתן).</li>
+      <li>בטורים למטה מסדרים בסדר <b>יורד</b> ובצבעים <b>מתחלפים</b> — אדום על שחור, שחור על אדום.</li>
+      <li>בטור ריק מניחים רק <b>מלך</b>.</li>
+      <li>לחיצה על חפיסת הקלפים בצד מוציאה קלף חדש. כשהיא נגמרת — לחיצה מתחילה אותה מחדש.</li>
+    </ul>
+    <h3>🕷️ סוליטר עכביש</h3>
+    <ul>
+      <li>המטרה: לבנות שמונה סדרות שלמות מ<b>מלך</b> ועד <b>אס</b> באותה צורה. סדרה שהושלמה נעלמת מהלוח.</li>
+      <li>מניחים קלף על קלף שגדול ממנו באחד — בכל צורה שהיא.</li>
+      <li>אפשר להזיז כמה קלפים יחד רק אם הם <b>ברצף ובאותה צורה</b>.</li>
+      <li>לחיצה על החפיסה מחלקת קלף לכל טור — אבל רק כשאין אף טור ריק.</li>
+    </ul>
+    <h3>ניקוד וכוכבים</h3>
+    <ul>
+      <li>מקבלים נקודות על כל קלף שמגיע לסיום, על כל קלף שנחשף ועל כל סדרה שמושלמת.</li>
+      <li>בסוף המשחק מקבלים בין כוכב אחד לחמישה כוכבים — לפי מספר המהלכים והזמן.</li>
+    </ul>
+  </div>
+  <div class="row"><button class="btn green" data-close>הבנתי, קדימה!</button></div>
+</div></div>
+
+<script>
+"use strict";
+(function(){
+/* =========================================================================
+   הגדרות ונתונים בסיסיים
+   ========================================================================= */
+const SUITS = ['♠','♥','♦','♣'];
+const SUIT_HE = ['עלה','לב','יהלום','תלתן'];
+const RANK_TXT = ['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const RANK_HE  = {1:'אס', 11:'שאב', 12:'דאמה', 13:'מלך'};
+const INK = '#151515', RED = '#c8102e';       // שחור ואדום קלאסיים בלבד
+
+const LS = {
+  set:'hslt_settings_v1',
+  save:g=>'hslt_save_'+g,
+  best:k=>'hslt_best_'+k
+};
+
+let ST = {size:1, rtl:1, sound:1};
+try{ Object.assign(ST, JSON.parse(localStorage.getItem(LS.set)||'{}')); }catch(e){}
+function saveSettings(){ try{ localStorage.setItem(LS.set, JSON.stringify(ST)); }catch(e){} }
+
+const $ = s=>document.querySelector(s);
+const $$ = s=>[...document.querySelectorAll(s)];
+
+/* =========================================================================
+   צלילים (מסונתזים — בלי קבצים חיצוniים)
+   ========================================================================= */
+let AC=null;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} } return AC; }
+function tone(f,dur,type,vol,delay){
+  if(!ST.sound) return;
+  const c=ac(); if(!c) return;
+  const t=c.currentTime+(delay||0);
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(f,t);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol||.15,t+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+.02);
+}
+const SND={
+  place:()=>{tone(520,.09,'triangle',.16); tone(760,.07,'triangle',.10,.03);},
+  flip :()=>tone(330,.07,'square',.07),
+  deal :i=>tone(400+((i||0)%5)*40,.05,'triangle',.06),
+  found:()=>{tone(660,.1,'sine',.17); tone(880,.13,'sine',.15,.07);},
+  set  :()=>{[523,659,784,1046].forEach((f,i)=>tone(f,.2,'triangle',.18,i*.08));},
+  bad  :()=>tone(150,.13,'sawtooth',.07),
+  star :i=>tone(700+i*130,.2,'triangle',.16),
+  win  :()=>{[523,659,784,1046,1318].forEach((f,i)=>tone(f,.45,'triangle',.2,i*.13));}
+};
+
+/* =========================================================================
+   מצב המשחק
+   ========================================================================= */
+let S = null;             // {game, suits, piles:{}, score, moves}
+let undoStack = [];
+let els = {};             // id -> element
+let GEO = {};             // pile -> {x,y,fd,fu,col}
+let CW=100, CH=145, GAP=12, BW=0, BH=0;
+let sel = null;           // {pile, idx}
+let T = {elapsed:0, t0:0, run:false, iv:null};
+let busy = false;
+let gen = 0;              // מזהה משחק — מבטל אנימציות של משחק קודם
+
+const board = $('#board'), boardWrap = $('#boardWrap');
+
+const isRed = c => c.s===1 || c.s===2;
+const tabs = () => S.game==='klondike'
+  ? ['t0','t1','t2','t3','t4','t5','t6']
+  : ['t0','t1','t2','t3','t4','t5','t6','t7','t8','t9'];
+const founds = () => S.game==='klondike'
+  ? ['f0','f1','f2','f3']
+  : ['c0','c1','c2','c3','c4','c5','c6','c7'];
+const top = p => { const a=S.piles[p]; return a.length?a[a.length-1]:null; };
+
+/* =========================================================================
+   בניית חפיסה וחלוקה
+   ========================================================================= */
+function newKlondike(){
+  let id=0, deck=[];
+  for(let s=0;s<4;s++) for(let r=1;r<=13;r++) deck.push({i:id++, r, s, u:false});
+  shuffle(deck);
+  const piles={stock:[],waste:[],f0:[],f1:[],f2:[],f3:[]};
+  for(let c=0;c<7;c++) piles['t'+c]=[];
+  for(let c=0;c<7;c++){
+    for(let k=0;k<=c;k++){ const card=deck.pop(); card.u=(k===c); piles['t'+c].push(card); }
+  }
+  piles.stock=deck;
+  return {game:'klondike', suits:1, piles, score:0, moves:0};
+}
+function newSpider(suits){
+  const use = suits===1?[0]: suits===2?[0,1]:[0,1,2,3];
+  const per = 8/use.length;            // כמה חפיסות מכל צורה
+  let id=0, deck=[];
+  use.forEach(s=>{ for(let k=0;k<per;k++) for(let r=1;r<=13;r++) deck.push({i:id++, r, s, u:false}); });
+  shuffle(deck);
+  const piles={stock:[]};
+  for(let k=0;k<8;k++) piles['c'+k]=[];
+  for(let c=0;c<10;c++) piles['t'+c]=[];
+  for(let c=0;c<10;c++){
+    const n = c<4?6:5;
+    for(let k=0;k<n;k++){ const card=deck.pop(); card.u=(k===n-1); piles['t'+c].push(card); }
+  }
+  piles.stock=deck;
+  return {game:'spider', suits, piles, score:0, moves:0};
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } }
+
+/* =========================================================================
+   יצירת אלמנטים
+   ========================================================================= */
+function buildDom(){
+  board.innerHTML=''; els={};
+  const order = S.game==='klondike'
+    ? ['stock','waste','f0','f1','f2','f3',...tabs()]
+    : ['stock',...founds(),...tabs()];
+  order.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='slot'; d.dataset.pile=p;
+    if(p==='stock') d.textContent='↻';
+    board.appendChild(d);
+    els['slot_'+p]=d;
+  });
+  allCards().forEach(c=>{
+    const d=document.createElement('div');
+    d.className='card';
+    d.dataset.id=c.i;
+    d.innerHTML='<div class="inner"><div class="face front">'+faceSVG(c)+'</div><div class="face back"></div></div>';
+    board.appendChild(d);
+    els[c.i]=d;
+  });
+}
+function allCards(){ return Object.values(S.piles).flat(); }
+function repaintAll(){
+  allCards().forEach(c=>{ const d=els[c.i]; if(d) d.querySelector('.front').innerHTML=faceSVG(c); });
+}
+
+/* =========================================================================
+   ציור הקלפים — מראה קלאסי
+   פנים הקלף נבנה כ-SVG אחד ב-viewBox 100x145, כך שהכל מתכווץ יחד עם הקלף.
+   ========================================================================= */
+/* סידור הסמלים הקלאסי: [עמודה 0=שמאל 1=מרכז 2=ימין, מיקום אנכי 0..1] */
+const PIPS = {
+  2 :[[1,0],[1,1]],
+  3 :[[1,0],[1,.5],[1,1]],
+  4 :[[0,0],[2,0],[0,1],[2,1]],
+  5 :[[0,0],[2,0],[1,.5],[0,1],[2,1]],
+  6 :[[0,0],[2,0],[0,.5],[2,.5],[0,1],[2,1]],
+  7 :[[0,0],[2,0],[1,.25],[0,.5],[2,.5],[0,1],[2,1]],
+  8 :[[0,0],[2,0],[1,.25],[0,.5],[2,.5],[1,.75],[0,1],[2,1]],
+  9 :[[0,0],[2,0],[0,1/3],[2,1/3],[1,.5],[0,2/3],[2,2/3],[0,1],[2,1]],
+  10:[[0,0],[2,0],[1,1/6],[0,1/3],[2,1/3],[0,2/3],[2,2/3],[1,5/6],[0,1],[2,1]]
+};
+const PIPX=[34,50,66], PIPY0=36, PIPYH=76;
+
+function faceSVG(c){
+  const col = isRed(c)?RED:INK, g=SUITS[c.s], t=RANK_TXT[c.r];
+  // אינדקס גדול בשתי הפינות העליונות — נקרא גם כשהקלפים חופפים
+  const idx = x =>
+    `<text x="${x}" y="30" font-size="27" font-weight="bold" text-anchor="middle" fill="${col}">${t}</text>`+
+    `<text x="${x}" y="50" font-size="21" text-anchor="middle" fill="${col}">${g}</text>`;
+  let mid;
+  if(c.r>=11)      mid = courtSVG(c.r, col, g);
+  else if(c.r===1) mid = `<text x="50" y="78" font-size="56" text-anchor="middle" dominant-baseline="central" fill="${col}">${g}</text>`;
+  else mid = PIPS[c.r].map(([cx,f])=>{
+    const x=PIPX[cx], y=PIPY0+f*PIPYH;
+    const rot = f>0.5 ? ` transform="rotate(180 ${x} ${y})"` : '';
+    return `<text x="${x}" y="${y}" font-size="23" text-anchor="middle" dominant-baseline="central" fill="${col}"${rot}>${g}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 100 145" xmlns="http://www.w3.org/2000/svg" `+
+         `font-family="Georgia,'Times New Roman',serif">${idx(15)}${idx(85)}${mid}</svg>`;
+}
+
+/* דמויות הקלפים המצוירים — צללית נקייה וברורה, בלי טקסט */
+function courtSVG(rank, col, g){
+  const light='#fffdf5';
+  const shoulders='<path d="M28,120 L28,105 C28,94 38,89 50,89 C62,89 72,94 72,105 L72,120 Z"/>';
+  const eyes='<circle cx="45.5" cy="62" r="1.7"/><circle cx="54.5" cy="62" r="1.7"/>';
+  let fig;
+  if(rank===13){        // מלך — כתר בעל חמש שיניים וזקן
+    fig = shoulders
+      + '<path d="M36,66 C34,86 40,95 50,97 C60,95 66,86 64,66 Z"/>'
+      + `<circle cx="50" cy="62" r="12.5" fill="${light}"/>`
+      + eyes
+      + '<path d="M34,50 L34,33 L42,44 L50,30 L58,44 L66,33 L66,50 Z"/>'
+      + '<rect x="34" y="50" width="32" height="6" rx="1.5"/>';
+  }else if(rank===12){  // מלכה — נזר מעוגל ושיער ארוך
+    fig = shoulders
+      + '<path d="M36,58 C31,76 33,90 38,96 L45,92 C40,80 39,68 41,58 Z"/>'
+      + '<path d="M64,58 C69,76 67,90 62,96 L55,92 C60,80 61,68 59,58 Z"/>'
+      + `<circle cx="50" cy="62" r="12.5" fill="${light}"/>`
+      + eyes
+      + '<path d="M36,52 L36,43 C39,37 43,39 44,45 C45,36 49,34 50,41 C51,34 55,36 56,45 C57,39 61,37 64,43 L64,52 Z"/>'
+      + '<rect x="36" y="52" width="28" height="5" rx="1.5"/>';
+  }else{                // נסיך — כובע עם נוצה
+    fig = shoulders
+      + '<path d="M37,60 C34,74 36,84 39,90 L45,87 C41,78 40,68 41,60 Z"/>'
+      + '<path d="M63,60 C66,74 64,84 61,90 L55,87 C59,78 60,68 59,60 Z"/>'
+      + `<circle cx="50" cy="63" r="12.5" fill="${light}"/>`
+      + eyes
+      + '<path d="M62,50 C74,40 73,30 70,25 C69,35 63,42 57,46 Z"/>'
+      + '<path d="M36,54 C36,42 42,37 50,37 C58,37 64,42 64,54 Z"/>'
+      + '<rect x="35" y="53" width="30" height="5" rx="1.5"/>';
+  }
+  return `<rect x="24" y="25" width="52" height="96" rx="5" fill="${light}" stroke="${col}" stroke-width="1.6"/>`
+       + `<g fill="${col}" stroke="${col}" stroke-width="1" stroke-linejoin="round">${fig}</g>`
+       + `<text x="31.5" y="37" font-size="12" text-anchor="middle" fill="${col}">${g}</text>`
+       + `<text x="68.5" y="114" font-size="12" text-anchor="middle" fill="${col}" transform="rotate(180 68.5 110)">${g}</text>`;
+}
+
+/* גב הקלף — סמל משפחת כתב: סוס אבירים מלכותי מעל מגן ובו האות K, בזהב על כחול עמוק */
+const HORSE =
+   '<path d="M33,45 L13,45 C13,38.5 15.5,35 20,32 C15,31 10.5,28.5 8.5,24.5 '
+ +        'C7,21.5 7.5,18 10,15.5 L7.5,12.5 L12,11.5 L14,7 L17.5,10.5 '
+ +        'C21,8.5 25.5,8 29,10 C34,13 37,19 37,26.5 C37,34 35,40 33,45 Z"/>'
+ + '<circle cx="15.5" cy="19" r="1.9" fill="#16255c"/>';
+
+const BACK_SVG =
+ '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 145">'
+ + '<rect width="100" height="145" fill="#16255c"/>'
+ + '<g stroke="#d4af37" fill="none" opacity=".22" stroke-width="1">'
+ +   '<path d="M-20,20 L120,160 M-20,60 L120,200 M-20,-20 L120,120 M-20,-60 L120,80"/>'
+ +   '<path d="M120,20 L-20,160 M120,60 L-20,200 M120,-20 L-20,120 M120,-60 L-20,80"/>'
+ + '</g>'
+ + '<rect x="4.5" y="4.5" width="91" height="136" rx="6" fill="none" stroke="#d4af37" stroke-width="2"/>'
+ + '<rect x="8.5" y="8.5" width="83" height="128" rx="4" fill="none" stroke="#d4af37" stroke-width=".8" opacity=".75"/>'
+ // הסוס — הקסדה שמעל המגן
+ + '<g fill="#d4af37" transform="translate(50 40) scale(.82) translate(-22 -26)">'+HORSE+'</g>'
+ // סרט מפריד
+ + '<path d="M24,60 H76" stroke="#d4af37" stroke-width="1.2" opacity=".8"/>'
+ + '<circle cx="50" cy="60" r="2.6" fill="#d4af37"/>'
+ // המגן ובתוכו האות K
+ + '<path d="M30,68 H70 V96 C70,108 61,114 50,118 C39,114 30,108 30,96 Z" '
+ +       'fill="#1b2f74" stroke="#d4af37" stroke-width="1.8"/>'
+ + '<path d="M33.5,71.5 H66.5 V95.5 C66.5,105.5 59,110.8 50,114.3 C41,110.8 33.5,105.5 33.5,95.5 Z" '
+ +       'fill="none" stroke="#d4af37" stroke-width=".7" opacity=".7"/>'
+ + '<text x="50" y="95" font-family="Georgia,\'Times New Roman\',serif" font-size="36" font-weight="bold" '
+ +       'text-anchor="middle" fill="#d4af37">K</text>'
+ + '<path d="M50,126 L52.4,131 L57.8,131 L53.4,134.4 L55.1,139.6 L50,136.4 L44.9,139.6 L46.6,134.4 '
+ +        'L42.2,131 L47.6,131 Z" fill="#d4af37" opacity=".8"/>'
+ + '</svg>';
+document.documentElement.style.setProperty('--backart',
+  'url("data:image/svg+xml;charset=utf-8,'+encodeURIComponent(BACK_SVG).replace(/"/g,'%22')+'")');
+
+/* =========================================================================
+   פריסה (layout)
+   ========================================================================= */
+function layout(){
+  const cols = S.game==='klondike'?7:10;
+  const availW = boardWrap.clientWidth-20;
+  const availH = boardWrap.clientHeight-20;
+  const gapR = (S.game==='spider' && availW<680) ? 0.05 : 0.12;
+
+  let cw = availW/(cols+(cols-1)*gapR);
+  const cwH = (availH/3.55)/1.45;
+  cw = Math.min(cw, cwH)*ST.size;
+  cw = Math.max(32, Math.min(190, cw));
+
+  CW=Math.floor(cw); CH=Math.round(CW*1.45); GAP=Math.floor(CW*gapR);
+  BW = cols*CW+(cols-1)*GAP;
+  board.style.setProperty('--cw',CW+'px');
+  board.style.setProperty('--ch',CH+'px');
+
+  const colX = c => c*(CW+GAP);
+  const X = x => ST.rtl ? (BW-CW-x) : x;
+  const topY = 0, tabY = CH + Math.round(GAP*1.7);
+
+  GEO={};
+  if(S.game==='klondike'){
+    GEO.stock={x:X(colX(0)),y:topY};
+    GEO.waste={x:X(colX(1)),y:topY};
+    for(let k=0;k<4;k++) GEO['f'+k]={x:X(colX(3+k)),y:topY};
+  }else{
+    GEO.stock={x:X(colX(0)),y:topY};
+    for(let k=0;k<8;k++) GEO['c'+k]={x:X(colX(2+k)),y:topY};
+  }
+
+  // מרווחי הפריסה. fuMin הוא הרוחב המינימלי שבו הדרגה בראש הקלף עדיין נקראת.
+  const fd0=CW*0.22, fdMin=CW*0.10;
+  const fu0=CW*0.48, fuMin=CW*0.34;   // fuMin = הגובה שבו הדרגה בפינה עדיין נראית במלואה
+  const room = availH - tabY;
+  let maxBottom = tabY+CH;
+  tabs().forEach((p,c)=>{
+    const a=S.piles[p];
+    const nd=a.filter(x=>!x.u).length, nu1=Math.max(0,a.length-nd-1);
+    let fd=fd0, fu=fu0;
+    let need = nd*fd + nu1*fu + CH;
+    if(need>room && nd){                       // קודם דוחסים את המוסתרים
+      const cut=Math.min(need-room, nd*(fd0-fdMin));
+      fd -= cut/nd; need -= cut;
+    }
+    if(need>room && nu1){                      // ורק אז את הגלויים, עד גבול הקריאוּת
+      const cut=Math.min(need-room, nu1*(fu0-fuMin));
+      fu -= cut/nu1; need -= cut;
+    }
+    GEO[p]={x:X(colX(c)), y:tabY, fd, fu};
+    maxBottom=Math.max(maxBottom, tabY + nd*fd + nu1*fu + CH);
+  });
+  BH=Math.ceil(maxBottom);
+  board.style.width=BW+'px';
+  board.style.height=BH+'px';
+
+  Object.keys(GEO).forEach(p=>{
+    const s=els['slot_'+p];
+    if(s) s.style.transform=`translate(${GEO[p].x}px,${GEO[p].y}px)`;
+  });
+}
+
+function cardXY(pile, idx){
+  const g=GEO[pile], a=S.piles[pile];
+  if(!g || !a) return {x:0,y:0};
+  if(!g.fd) return {x:g.x, y:g.y};        // ערימה ללא פריסה
+  let y=g.y;
+  const n=Math.min(idx, a.length);
+  for(let k=0;k<n;k++) y += a[k].u ? g.fu : g.fd;
+  return {x:g.x, y};
+}
+
+function render(){
+  let z=1;
+  const order = S.game==='klondike'
+    ? ['stock','waste','f0','f1','f2','f3',...tabs()]
+    : ['stock',...founds(),...tabs()];
+  order.forEach(p=>{
+    const a=S.piles[p];
+    a.forEach((c,i)=>{
+      const d=els[c.i], pos=cardXY(p,i);
+      d.style.transform=`translate(${pos.x}px,${pos.y}px)`;
+      d.style.zIndex=++z;
+      d.style.opacity='1';
+      d.classList.toggle('up', !!c.u);
+      d.classList.remove('sel','target');
+    });
+  });
+  // ערימות הסיום של עכביש — מציגים רק את הקלף העליון
+  if(S.game==='spider') founds().forEach(p=>{
+    S.piles[p].forEach((c,i)=>{ els[c.i].style.opacity = (i>=S.piles[p].length-1)?'1':'0'; });
+  });
+  els['slot_stock'].textContent = S.piles.stock.length ? '' : '↻';
+  if(S.game==='spider') els['slot_stock'].textContent = S.piles.stock.length ? String(S.piles.stock.length/10|0) : '';
+  drawSelection();
+  updateStats();
+}
+
+function drawSelection(){
+  $$('.card.sel,.card.target').forEach(d=>d.classList.remove('sel','target'));
+  $$('.slot.target').forEach(d=>d.classList.remove('target'));
+  if(!sel) return;
+  const run = S.piles[sel.pile].slice(sel.idx);
+  run.forEach(c=>els[c.i].classList.add('sel'));
+  legalTargets(run, sel.pile).forEach(p=>{
+    const t=top(p);
+    if(t && !(S.game==='spider' && founds().includes(p))) els[t.i].classList.add('target');
+    else els['slot_'+p].classList.add('target');
+  });
+}
+
+/* =========================================================================
+   חוקי המשחק
+   ========================================================================= */
+function canGrab(pile, idx){
+  if(pile==='stock') return false;
+  const a=S.piles[pile];
+  if(idx>=a.length) return false;
+  if(pile==='waste') return idx===a.length-1;
+  if(founds().includes(pile)) return S.game==='klondike' && idx===a.length-1;
+  const run=a.slice(idx);
+  if(run.some(c=>!c.u)) return false;
+  if(S.game==='klondike'){
+    for(let k=1;k<run.length;k++)
+      if(run[k].r!==run[k-1].r-1 || isRed(run[k])===isRed(run[k-1])) return false;
+  }else{
+    for(let k=1;k<run.length;k++)
+      if(run[k].r!==run[k-1].r-1 || run[k].s!==run[k-1].s) return false;
+  }
+  return true;
+}
+function canDrop(run, destPile, fromPile){
+  if(destPile===fromPile || destPile==='stock' || destPile==='waste') return false;
+  const c=run[0], t=top(destPile);
+  if(S.game==='klondike'){
+    if(destPile[0]==='f'){
+      if(run.length!==1) return false;
+      return t ? (t.s===c.s && t.r===c.r-1) : c.r===1;
+    }
+    if(!t) return c.r===13;
+    return t.u && t.r===c.r+1 && isRed(t)!==isRed(c);
+  }else{
+    if(destPile[0]==='c') return false;
+    if(!t) return true;
+    return t.u && t.r===c.r+1;
+  }
+}
+function legalTargets(run, fromPile){
+  return [...tabs(), ...(S.game==='klondike'?founds():[])]
+    .filter(p=>canDrop(run,p,fromPile));
+}
+
+/* =========================================================================
+   ביצוע מהלכים + ניקוד
+   ========================================================================= */
+function pushUndo(){ undoStack.push(JSON.stringify(S)); if(undoStack.length>500) undoStack.shift(); }
+function addScore(n, pile, idx){
+  S.score+=n;
+  if(n>0 && pile!=null) popScore(n, pile, idx);
+}
+function popScore(n, pile, idx){
+  const pos=cardXY(pile, idx==null?Math.max(0,S.piles[pile].length-1):idx);
+  const d=document.createElement('div');
+  d.className='pop-score'; d.textContent='+'+n;
+  d.style.left=(pos.x+CW/2-20)+'px'; d.style.top=(pos.y+CH*0.3)+'px';
+  board.appendChild(d);
+  setTimeout(()=>d.remove(),1100);
+}
+
+function doMove(fromPile, idx, destPile, silent){
+  const a=S.piles[fromPile];
+  const run=a.splice(idx);
+  S.piles[destPile].push(...run);
+  S.moves++;
+  startTimer();
+
+  if(S.game==='klondike'){
+    if(destPile[0]==='f'){ addScore(15, destPile); SND.found(); pulse(run[0]); }
+    else if(fromPile==='waste'){ addScore(5, destPile, S.piles[destPile].length-run.length); if(!silent)SND.place(); }
+    else if(!silent) SND.place();
+  }else{
+    const t=S.piles[destPile];
+    const below=t[t.length-run.length-1];
+    if(below && below.s===run[0].s) addScore(5, destPile, t.length-run.length);
+    if(!silent) SND.place();
+  }
+  // חשיפת קלף מוסתר
+  const nt=top(fromPile);
+  if(nt && !nt.u && fromPile[0]==='t'){ nt.u=true; addScore(10, fromPile); SND.flip(); }
+  if(S.game==='spider') checkSets();
+  afterChange();
+}
+
+function pulse(c){ const d=els[c.i]; d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop'); }
+
+function checkSets(){
+  tabs().forEach(p=>{
+    const a=S.piles[p];
+    if(a.length<13) return;
+    const seg=a.slice(-13);
+    if(seg[0].r!==13 || !seg.every(c=>c.u)) return;
+    for(let k=1;k<13;k++) if(seg[k].r!==seg[k-1].r-1 || seg[k].s!==seg[k-1].s) return;
+    const dest=founds().find(f=>S.piles[f].length===0);
+    a.splice(a.length-13,13);
+    S.piles[dest].push(...seg);
+    addScore(150, dest);
+    SND.set();
+    seg.forEach(c=>pulse(c));
+    const nt=top(p);
+    if(nt && !nt.u){ nt.u=true; addScore(10,p); }
+    toast('סדרה הושלמה! 🎉');
+  });
+}
+
+function afterChange(){
+  sel=null;
+  layout(); render(); saveGame();
+  if(checkWin()) return;
+  if(S.game==='spider' && !S.piles.stock.length && !hasAnyMove()) setTimeout(()=>show('#ovStuck'),700);
+}
+
+/* =========================================================================
+   קלפים מהחפיסה
+   ========================================================================= */
+function clickStock(){
+  if(S.game==='klondike'){
+    pushUndo();
+    if(S.piles.stock.length){
+      const c=S.piles.stock.pop(); c.u=true; S.piles.waste.push(c); SND.flip();
+    }else if(S.piles.waste.length){
+      S.piles.stock = S.piles.waste.reverse().map(c=>(c.u=false,c));
+      S.piles.waste=[]; SND.deal(0);
+    }else return;
+    S.moves++; startTimer(); afterChange();
+  }else{
+    if(!S.piles.stock.length){ toast('אין יותר קלפים בחפיסה'); SND.bad(); return; }
+    if(tabs().some(p=>!S.piles[p].length)){ toast('צריך למלא קודם את הטורים הריקים'); SND.bad(); return; }
+    pushUndo();
+    tabs().forEach((p,i)=>{
+      const c=S.piles.stock.pop(); c.u=true; S.piles[p].push(c);
+      setTimeout(()=>SND.deal(i), i*45);
+    });
+    S.moves++; startTimer(); checkSets(); afterChange();
+  }
+}
+
+/* =========================================================================
+   אסוף הכל (סוליטר)
+   ========================================================================= */
+function autoCollect(){
+  if(busy) return;
+  busy=true; pushUndo();
+  let did=false;
+  const step=()=>{
+    const srcs=['waste',...tabs()];
+    for(const p of srcs){
+      const t=top(p); if(!t||!t.u) continue;
+      const f=founds().find(f=>canDrop([t],f,p));
+      if(f){ doMove(p,S.piles[p].length-1,f,true); did=true; setTimeout(step,170); return; }
+    }
+    busy=false;
+    if(!did){ undoStack.pop(); toast('אין כרגע קלפים לאסוף'); SND.bad(); }
+  };
+  step();
+}
+
+/* =========================================================================
+   רמז
+   ========================================================================= */
+function findHint(){
+  if(S.game==='klondike'){
+    // 1. מהלך שחושף קלף מוסתר
+    for(const p of tabs()){
+      const a=S.piles[p];
+      const i=a.findIndex(c=>c.u);
+      if(i>0 && canGrab(p,i)){
+        const d=legalTargets(a.slice(i),p).find(x=>x[0]==='t' && S.piles[x].length);
+        if(d) return {from:p,idx:i,to:d};
+      }
+    }
+    // 2. לערימות הסיום
+    for(const p of ['waste',...tabs()]){
+      const t=top(p); if(!t||!t.u) continue;
+      const f=founds().find(f=>canDrop([t],f,p));
+      if(f) return {from:p, idx:S.piles[p].length-1, to:f};
+    }
+    // 3. מהערימה הפתוחה לטור
+    const w=top('waste');
+    if(w){ const d=legalTargets([w],'waste')[0]; if(d) return {from:'waste', idx:S.piles.waste.length-1, to:d}; }
+    // 4. מלך לטור ריק
+    for(const p of tabs()){
+      const a=S.piles[p]; const i=a.findIndex(c=>c.u);
+      if(i>0 && a[i].r===13 && canGrab(p,i)){
+        const d=tabs().find(x=>!S.piles[x].length);
+        if(d) return {from:p, idx:i, to:d};
+      }
+    }
+    // 5. כל מהלך בין טורים
+    for(const p of tabs()){
+      const a=S.piles[p]; const i=a.findIndex(c=>c.u);
+      if(i<0||!canGrab(p,i)) continue;
+      const d=legalTargets(a.slice(i),p).find(x=>x[0]==='t' && S.piles[x].length);
+      if(d) return {from:p, idx:i, to:d};
+    }
+    if(S.piles.stock.length||S.piles.waste.length) return {stock:true};
+    return null;
+  }
+  // ---- עכביש ----
+  const cands=[];
+  for(const p of tabs()){
+    const a=S.piles[p];
+    for(let i=0;i<a.length;i++){
+      if(!canGrab(p,i)) continue;
+      const run=a.slice(i);
+      for(const d of tabs()){
+        if(!canDrop(run,d,p)) continue;
+        const t=top(d);
+        let sc=0;
+        if(t && t.s===run[0].s) sc+=50;               // חיבור באותה צורה
+        if(i>0 && !a[i-1].u) sc+=40;                  // חושף קלף
+        if(i===0 && a.length===run.length) sc-=25;    // מרוקן טור לשווא
+        if(!t) sc-=10;                                // טור ריק — לשמור
+        sc += run.length;
+        cands.push({from:p, idx:i, to:d, sc});
+      }
+      break; // מספיק הרצף הארוך ביותר מהטור
+    }
+  }
+  if(cands.length){ cands.sort((a,b)=>b.sc-a.sc); if(cands[0].sc>0) return cands[0]; }
+  if(S.piles.stock.length && !tabs().some(p=>!S.piles[p].length)) return {stock:true};
+  return cands.length?cands[0]:null;
+}
+function hasAnyMove(){ return !!findHint(); }
+
+function showHint(){
+  const h=findHint();
+  if(!h){ toast('אין מהלך זמין'); SND.bad(); return; }
+  if(h.stock){ flashEl(els['slot_stock']); toast('אפשר לקחת קלף מהחפיסה'); return; }
+  const c=S.piles[h.from][h.idx];
+  flashEl(els[c.i]);
+  const t=top(h.to);
+  flashEl(t?els[t.i]:els['slot_'+h.to]);
+  tone(880,.12,'triangle',.13);
+}
+function flashEl(d){ d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint'); setTimeout(()=>d.classList.remove('hint'),2400); }
+
+/* =========================================================================
+   קלט: לחיצה + גרירה
+   ========================================================================= */
+function pileAt(px,py){
+  let best=null;
+  for(const p in GEO){
+    const g=GEO[p], a=S.piles[p];
+    let h=CH;
+    if(g.fd && a.length){
+      const nd=a.filter(x=>!x.u).length;
+      h = nd*g.fd + Math.max(0,a.length-nd-1)*g.fu + CH;
+    }
+    if(px>=g.x-GAP/2 && px<=g.x+CW+GAP/2 && py>=g.y-6 && py<=g.y+h+6){
+      if(!best || g.y>GEO[best].y) best=p;
+    }
+  }
+  return best;
+}
+function locate(el){
+  const cd=el.closest('.card');
+  if(cd){
+    const id=+cd.dataset.id;
+    for(const p in S.piles){
+      const i=S.piles[p].findIndex(c=>c.i===id);
+      if(i>=0) return {pile:p, idx:i};
+    }
+  }
+  const sl=el.closest('.slot');
+  if(sl) return {pile:sl.dataset.pile, idx:-1};
+  return null;
+}
+
+let drag=null;
+board.addEventListener('pointerdown', e=>{
+  if(busy) return;
+  const loc=locate(e.target); if(!loc) return;
+  if(loc.pile==='stock'){ return; }            // מטופל ב-click
+  if(loc.idx<0) return;
+  if(!canGrab(loc.pile,loc.idx)) return;
+  drag={loc, x0:e.clientX, y0:e.clientY, moved:false, cards:S.piles[loc.pile].slice(loc.idx), off:[]};
+  const r=board.getBoundingClientRect();
+  drag.cards.forEach((c,k)=>{
+    const pos=cardXY(loc.pile, loc.idx+k);
+    drag.off.push({dx:pos.x-(e.clientX-r.left), dy:pos.y-(e.clientY-r.top)});
+  });
+  board.setPointerCapture(e.pointerId);
+});
+board.addEventListener('pointermove', e=>{
+  if(!drag) return;
+  if(!drag.moved){
+    if(Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0)<7) return;
+    drag.moved=true;
+    drag.cards.forEach(c=>els[c.i].classList.add('drag'));
+  }
+  const r=board.getBoundingClientRect();
+  drag.cards.forEach((c,k)=>{
+    const o=drag.off[k];
+    els[c.i].style.transform=`translate(${e.clientX-r.left+o.dx}px,${e.clientY-r.top+o.dy}px)`;
+  });
+});
+board.addEventListener('pointerup', e=>{
+  if(!drag) return;
+  const d=drag; drag=null;
+  d.cards.forEach(c=>els[c.i].classList.remove('drag'));
+  if(!d.moved){ handleClick(d.loc); return; }
+  const r=board.getBoundingClientRect();
+  const dest=pileAt(e.clientX-r.left, e.clientY-r.top);
+  if(dest && canDrop(d.cards, dest, d.loc.pile)){
+    pushUndo(); doMove(d.loc.pile, d.loc.idx, dest);
+  }else{ SND.bad(); sel=null; render(); }
+});
+board.addEventListener('pointercancel', ()=>{
+  if(drag){ drag.cards.forEach(c=>els[c.i].classList.remove('drag')); drag=null; render(); }
+});
+board.addEventListener('click', e=>{
+  if(busy) return;
+  const loc=locate(e.target); if(!loc) return;
+  if(loc.pile==='stock'){ sel=null; clickStock(); }
+});
+
+function handleClick(loc){
+  ac();
+  // יש בחירה — ננסה להניח
+  if(sel){
+    if(sel.pile===loc.pile && sel.idx===loc.idx){ sel=null; render(); return; }
+    const run=S.piles[sel.pile].slice(sel.idx);
+    if(canDrop(run, loc.pile, sel.pile)){
+      const from=sel; sel=null;
+      pushUndo(); doMove(from.pile, from.idx, loc.pile);
+      return;
+    }
+  }
+  // בחירה חדשה
+  if(loc.idx<0){ sel=null; render(); return; }
+  const card=S.piles[loc.pile][loc.idx];
+  if(!card.u && loc.pile[0]==='t' && loc.idx===S.piles[loc.pile].length-1){
+    pushUndo(); card.u=true; addScore(10, loc.pile); SND.flip(); S.moves++; startTimer(); afterChange(); return;
+  }
+  if(!canGrab(loc.pile, loc.idx)){
+    // לחיצה על קלף באמצע רצף — ננסה לבחור את הרצף החוקי הכולל אותו
+    const a=S.piles[loc.pile];
+    let k=loc.idx;
+    while(k<a.length && !canGrab(loc.pile,k)) k++;
+    if(k<a.length){ sel={pile:loc.pile, idx:k}; render(); tone(620,.05,'sine',.08); return; }
+    SND.bad(); sel=null; render(); return;
+  }
+  sel={pile:loc.pile, idx:loc.idx};
+  render();
+  tone(620,.05,'sine',.08);
+}
+
+/* =========================================================================
+   ניצחון, כוכבים, קונפטי
+   ========================================================================= */
+const PAR = {
+  klondike:{moves:135, time:420},
+  spider1 :{moves:160, time:600},
+  spider2 :{moves:260, time:900},
+  spider4 :{moves:380, time:1200}
+};
+function parKey(){ return S.game==='klondike' ? 'klondike' : 'spider'+S.suits; }
+
+function checkWin(){
+  const won = S.game==='klondike'
+    ? founds().every(f=>S.piles[f].length===13)
+    : founds().every(f=>S.piles[f].length===13);
+  if(!won) return false;
+  stopTimer();
+  const par=PAR[parKey()];
+  const bonus = Math.max(0, Math.round(par.time*2 - T.elapsed*2)) + Math.max(0,(par.moves-S.moves)*3);
+  S.score += bonus;
+  const q = 0.6*Math.min(1.7, par.moves/Math.max(1,S.moves))
+          + 0.4*Math.min(1.7, par.time /Math.max(20,T.elapsed));
+  const stars = q>=1.15?5 : q>=0.92?4 : q>=0.72?3 : q>=0.55?2 : 1;
+  try{ localStorage.removeItem(LS.save(S.game)); }catch(e){}
+  setTimeout(()=>winScreen(stars, bonus), 500);
+  return true;
+}
+
+const RATING = ['','לא נורא — העיקר ההנאה!','יפה מאוד!','משחק טוב!','מצוין! כמעט מושלם','מושלם! אלוף אמיתי 🏆'];
+
+function winScreen(stars, bonus){
+  SND.win(); confetti();
+  const key = parKey();
+  let best=0; try{ best=+(localStorage.getItem(LS.best(key))||0); }catch(e){}
+  const isBest = S.score>best;
+  if(isBest){ try{ localStorage.setItem(LS.best(key), S.score); }catch(e){} }
+
+  $('#winTitle').textContent = '🎉 כל הכבוד!';
+  $('#winScore').textContent = S.score.toLocaleString('he-IL');
+  $('#winMoves').textContent = S.moves;
+  $('#winTime').textContent = fmt(T.elapsed);
+  $('#newBest').classList.toggle('on', isBest);
+  $('#ratingText').textContent='';
+  const row=$('#starRow'); row.innerHTML='';
+  for(let k=0;k<5;k++){
+    const s=document.createElement('span');
+    s.className='star'+(k<stars?' lit':''); s.textContent='★';
+    row.appendChild(s);
+  }
+  show('#ovWin');
+  [...row.children].forEach((s,k)=>setTimeout(()=>{
+    s.classList.add('show');
+    if(k<stars) SND.star(k);
+  }, 420+k*260));
+  setTimeout(()=>{ $('#ratingText').textContent=RATING[stars]; }, 420+stars*260+250);
+  refreshBest();
+}
+
+const cvs=$('#confetti'), ctx=cvs.getContext('2d');
+let parts=[], confRaf=null;
+function confetti(){
+  cvs.style.display='block';
+  cvs.width=innerWidth; cvs.height=innerHeight;
+  const cols=['#ffc531','#ff6b6b','#4ecdc4','#5b9bd5','#a888ff','#7ed957'];
+  parts=[];
+  for(let i=0;i<170;i++) parts.push({
+    x:Math.random()*cvs.width, y:-Math.random()*cvs.height*0.6,
+    vx:(Math.random()-.5)*2.4, vy:2+Math.random()*3.6,
+    w:7+Math.random()*9, h:9+Math.random()*11,
+    a:Math.random()*6.3, va:(Math.random()-.5)*.28,
+    c:cols[i%cols.length]
+  });
+  let end=Date.now()+4200;
+  cancelAnimationFrame(confRaf);
+  (function loop(){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    parts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.a+=p.va; p.vx+=(Math.random()-.5)*.08;
+      if(p.y>cvs.height+24){ p.y=-20; p.x=Math.random()*cvs.width; }
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+    });
+    if(Date.now()<end) confRaf=requestAnimationFrame(loop);
+    else { ctx.clearRect(0,0,cvs.width,cvs.height); cvs.style.display='none'; }
+  })();
+}
+
+/* =========================================================================
+   טיימר, סטטוס, שמירה
+   ========================================================================= */
+function startTimer(){
+  if(T.run) return;
+  T.run=true; T.t0=Date.now();
+  T.iv=setInterval(()=>{ updateStats(); saveGame(); },1000);
+}
+function stopTimer(){
+  if(T.run){ T.elapsed += (Date.now()-T.t0)/1000; T.run=false; }
+  clearInterval(T.iv); T.iv=null;
+}
+function nowElapsed(){ return Math.floor(T.elapsed + (T.run?(Date.now()-T.t0)/1000:0)); }
+function fmt(s){ s=Math.floor(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function updateStats(){
+  if(!S) return;
+  $('#sScore').textContent=S.score;
+  $('#sMoves').textContent=S.moves;
+  $('#sTime').textContent=fmt(nowElapsed());
+  const sp=S.game==='spider';
+  $('#sExtraWrap').style.display = sp?'':'none';
+  if(sp) $('#sExtra').textContent = founds().filter(f=>S.piles[f].length===13).length;
+  $('#btnUndo').disabled = !undoStack.length;
+}
+function saveGame(){
+  if(!S) return;
+  try{ localStorage.setItem(LS.save(S.game), JSON.stringify({S, t:nowElapsed(), u:undoStack.slice(-60)})); }catch(e){}
+}
+function loadSave(g){
+  try{ return JSON.parse(localStorage.getItem(LS.save(g))||'null'); }catch(e){ return null; }
+}
+function refreshBest(){
+  const k=n=>{ try{ return +(localStorage.getItem(LS.best(n))||0);}catch(e){return 0;} };
+  const bk=k('klondike');
+  const bs=Math.max(k('spider1'),k('spider2'),k('spider4'));
+  $('#bestK').textContent = bk?('🏆 שיא: '+bk.toLocaleString('he-IL')):'';
+  $('#bestS').textContent = bs?('🏆 שיא: '+bs.toLocaleString('he-IL')):'';
+  const sv = loadSave('klondike')||loadSave('spider');
+  const btn=$('#btnResume');
+  if(sv && sv.S){
+    btn.style.display='';
+    $('#resumeDesc').textContent =
+      (sv.S.game==='klondike'?'סוליטר':'עכביש') + ' · ניקוד '+sv.S.score+' · '+fmt(sv.t||0);
+    btn.dataset.g=sv.S.game;
+  }else btn.style.display='none';
+}
+
+/* =========================================================================
+   הפעלה / מעברי מסכים
+   ========================================================================= */
+function startGame(game, suits, restore){
+  stopTimer(); T={elapsed:0,t0:0,run:false,iv:null};
+  undoStack=[]; sel=null; busy=false; drag=null; gen++;
+  if(restore){
+    S=restore.S; T.elapsed=restore.t||0; undoStack=restore.u||[];
+  }else{
+    S = game==='klondike' ? newKlondike() : newSpider(suits);
+  }
+  goto('#game');
+  buildDom(); layout();
+  $('#btnAuto').style.display = S.game==='klondike'?'':'none';
+
+  if(restore){ render(); }
+  else{
+    // אנימציית חלוקה
+    const sp=GEO.stock;
+    allCards().forEach(c=>{
+      const d=els[c.i];
+      d.classList.add('nomove');
+      d.style.transform=`translate(${sp.x}px,${sp.y}px)`;
+      d.classList.remove('up');
+    });
+    void board.offsetWidth;
+    let n=0;
+    const order=[...tabs()];
+    order.forEach(p=>S.piles[p].forEach(()=>n++));
+    let k=0;
+    const myGen=gen;
+    order.forEach((p,ci)=>{
+      S.piles[p].forEach((c,i)=>{
+        const d=els[c.i], delay=(k++)*26;
+        setTimeout(()=>{
+          if(myGen!==gen) return;              // התחיל משחק אחר בינתיים
+          d.classList.remove('nomove');
+          const pos=cardXY(p,i);
+          d.style.transform=`translate(${pos.x}px,${pos.y}px)`;
+          d.classList.toggle('up', !!c.u);
+          SND.deal(i);
+        }, delay);
+      });
+    });
+    setTimeout(()=>{
+      if(myGen!==gen) return;
+      allCards().forEach(c=>els[c.i].classList.remove('nomove')); render();
+    }, k*26+420);
+  }
+  updateStats();
+}
+
+function goto(id){
+  $$('.screen').forEach(s=>s.classList.remove('on'));
+  $(id).classList.add('on');
+  if(id==='#home'){ stopTimer(); refreshBest(); }
+}
+function show(id){ $(id).classList.add('on'); }
+function hide(id){ $(id).classList.remove('on'); }
+let toastTO=null;
+function toast(t){
+  const el=$('#toast'); el.textContent=t; el.classList.add('on');
+  clearTimeout(toastTO); toastTO=setTimeout(()=>el.classList.remove('on'),2200);
+}
+function confirmBox(title, text, onYes){
+  $('#cfTitle').textContent=title; $('#cfText').textContent=text;
+  show('#ovConfirm');
+  $('#cfYes').onclick=()=>{ hide('#ovConfirm'); onYes(); };
+}
+
+/* ---------- אירועים ---------- */
+$$('.gamecard[data-game]').forEach(b=>b.onclick=()=>{
+  ac();
+  const g=b.dataset.game;
+  if(g==='spider') show('#ovDiff');
+  else startGame('klondike');
+});
+$('#btnResume').onclick=()=>{ ac(); const g=$('#btnResume').dataset.g; startGame(g,null,loadSave(g)); };
+$$('#ovDiff [data-suits]').forEach(b=>b.onclick=()=>{ hide('#ovDiff'); startGame('spider', +b.dataset.suits); });
+$$('[data-close]').forEach(b=>b.onclick=()=>b.closest('.ov').classList.remove('on'));
+$('#cfNo').onclick=()=>hide('#ovConfirm');
+
+$('#btnMenu').onclick=()=>{ saveGame(); goto('#home'); };
+$('#btnUndo').onclick=()=>{
+  if(!undoStack.length) return;
+  S=JSON.parse(undoStack.pop()); sel=null;
+  repaintAll(); layout(); render(); saveGame(); SND.flip();
+};
+$('#btnHint').onclick=showHint;
+$('#btnAuto').onclick=autoCollect;
+$('#btnNew').onclick=()=>confirmBox('להתחיל משחק חדש?','המשחק הנוכחי יימחק ולא יהיה אפשר לחזור אליו.',
+  ()=>startGame(S.game, S.suits));
+$('#btnSet').onclick=()=>{ syncSet(); show('#ovSet'); };
+$('#btnSetHome').onclick=()=>{ syncSet(); show('#ovSet'); };
+$('#btnHelpHome').onclick=()=>show('#ovHelp');
+$('#setHelp').onclick=()=>{ hide('#ovSet'); show('#ovHelp'); };
+$('#stUndo').onclick=()=>{ hide('#ovStuck'); $('#btnUndo').click(); };
+$('#stNew').onclick=()=>{ hide('#ovStuck'); startGame(S.game,S.suits); };
+$('#winAgain').onclick=()=>{ hide('#ovWin'); startGame(S.game,S.suits); };
+$('#winMenu').onclick=()=>{ hide('#ovWin'); goto('#home'); };
+
+function syncSet(){
+  $$('#ovSet .seg').forEach(seg=>{
+    const key=seg.dataset.set;
+    [...seg.children].forEach(b=>b.classList.toggle('on', String(ST[key])===b.dataset.v));
+  });
+}
+$$('#ovSet .seg').forEach(seg=>{
+  const key=seg.dataset.set;
+  [...seg.children].forEach(b=>b.onclick=()=>{
+    ST[key] = key==='size'?parseFloat(b.dataset.v):+b.dataset.v;
+    saveSettings(); syncSet();
+    if(S){ repaintAll(); layout(); render(); }
+    if(key==='sound' && ST.sound) SND.place();
+  });
+});
+
+addEventListener('resize', ()=>{ if(S && $('#game').classList.contains('on')){ layout(); render(); } });
+addEventListener('visibilitychange', ()=>{ if(document.hidden){ stopTimer(); saveGame(); } });
+addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ const o=$$('.ov.on').pop(); if(o) o.classList.remove('on'); }
+  if(!$('#game').classList.contains('on')) return;
+  if(e.key==='z' && (e.ctrlKey||e.metaKey)) $('#btnUndo').click();
+  if(e.key==='h') showHint();
+});
+
+window.__dbg={s:()=>S,win:st=>winScreen(st,500),start:startGame,sets:checkSets,f:founds,t:tabs,
+  after:afterChange,lay:()=>{layout();render();},hint:findHint,stock:clickStock,undo:()=>undoStack};
+refreshBest();
+})();
+</script>
+</body>
+</html>

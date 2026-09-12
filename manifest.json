@@ -1,0 +1,16 @@
+{
+  "name": "משחקי קלפים",
+  "short_name": "קלפים",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0f5236",
+  "theme_color": "#15603f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
