@@ -6,7 +6,7 @@ $root = Split-Path $PSScriptRoot -Parent
 $html = Join-Path $root 'index.html'
 
 $parts = @()
-foreach ($name in 'king','queen','jack','back') {
+foreach ($name in 'king','queen','jack','back','crest') {
   $png = Join-Path $root "art\$name.png"
   if (-not (Test-Path $png)) { throw "missing $png" }
   $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($png))

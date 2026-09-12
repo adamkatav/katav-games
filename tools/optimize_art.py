@@ -9,7 +9,7 @@ from PIL import Image
 
 ART = Path(__file__).resolve().parent.parent / "art"
 
-for name, colors in (("king", 64), ("queen", 64), ("jack", 64), ("back", 32)):
+for name, colors in (("king", 64), ("queen", 64), ("jack", 64), ("back", 32), ("crest", 16)):
     src = ART / f"{name}.png"
     img = Image.open(src).convert("RGBA")
     before = src.stat().st_size
