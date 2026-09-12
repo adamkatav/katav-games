@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Katav game box — tests</title>
+<style>
+  body{font:15px/1.5 "Segoe UI",system-ui,sans-serif;margin:0;background:#12201a;color:#e8f0ea;}
+  header{padding:16px 20px;background:#0f5236;border-bottom:2px solid #1d7a52;}
+  h1{margin:0;font-size:19px;}
+  #summary{margin-top:6px;font-size:17px;font-weight:700;}
+  .pass{color:#7ed957;} .fail{color:#ff8a7a;}
+  ol{margin:0;padding:14px 20px 40px 44px;}
+  li{margin:3px 0;}
+  li.fail{color:#ff8a7a;font-weight:600;}
+  .err{display:block;color:#ffb3a7;font-size:13px;margin-left:2px;}
+  iframe{position:fixed;left:-3000px;top:0;width:1280px;height:860px;border:0;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Katav game box — test suite</h1>
+  <div id="summary">running…</div>
+</header>
+<ol id="list"></ol>
+
+<!-- The game runs in an iframe with ?test=1, which is what exposes __GAME. -->
+<iframe id="game" src="../index.html?test=1"></iframe>
+
+<script src="tests.js"></script>
+<script>
+const frame = document.getElementById('game');
+
+frame.addEventListener('load', () => {
+  const win = frame.contentWindow;
+
+  if (!win.__GAME) {
+    report({ total: 0, failed: 1, results: [
+      { name: 'game exposes __GAME under ?test=1', pass: false,
+        error: 'window.__GAME missing — is the test seam still in index.html?' }
+    ]});
+    return;
+  }
+
+  // Run the suite against the iframe's game instance.
+  window.__GAME = win.__GAME;
+  let out;
+  try {
+    out = window.runTests();
+  } catch (e) {
+    out = { total: 0, failed: 1, results: [{ name: 'suite crashed', pass: false, error: e.message }] };
+  }
+  report(out);
+});
+
+function report(out) {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  out.results.forEach(r => {
+    const li = document.createElement('li');
+    li.className = r.pass ? 'pass' : 'fail';
+    li.textContent = (r.pass ? '✓ ' : '✗ ') + r.name;
+    if (!r.pass) {
+      const e = document.createElement('span');
+      e.className = 'err'; e.textContent = r.error;
+      li.appendChild(e);
+    }
+    list.appendChild(li);
+  });
+
+  const passed = out.total - out.failed;
+  const el = document.getElementById('summary');
+  el.className = out.failed ? 'fail' : 'pass';
+  el.textContent = out.failed
+    ? `${out.failed} of ${out.total} FAILED`
+    : `all ${out.total} passed`;
+
+  // Signals for the CI runner.
+  document.title = out.failed ? `FAIL (${out.failed})` : `PASS (${passed})`;
+  window.__RESULTS = out;
+  window.__DONE = true;
+}
+</script>
+</body>
+</html>

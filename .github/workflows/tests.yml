@@ -1,0 +1,36 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save playwright@^1.47
+          npx playwright install --with-deps chromium
+
+      - name: Serve the repo
+        run: |
+          python3 -m http.server 8791 --bind 127.0.0.1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8791/index.html >/dev/null && break
+            sleep 1
+          done
+
+      - name: Run the suite
+        run: node tests/ci.js
+        env:
+          TEST_URL: http://127.0.0.1:8791/tests/run.html
