@@ -67,10 +67,25 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
     // The toolbar wraps to a second row at some widths, which changes the
     // height available to the board after it has already sized itself.
     resizeObserver?.disconnect();
-    resizeObserver = new ResizeObserver(() => layout());
+    resizeObserver = new ResizeObserver(() => scheduleLayout());
     resizeObserver.observe(root);
 
     layout();
+  }
+
+  /**
+   * Resizing the board can toggle the host's scrollbar, which changes the
+   * host's width and re-fires the observer. Coalescing into one frame keeps
+   * that from ping-ponging (and from logging a ResizeObserver loop warning).
+   */
+  let layoutQueued = false;
+  function scheduleLayout(): void {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => {
+      layoutQueued = false;
+      if (root.isConnected) layout();
+    });
   }
 
   const everyCard = (): Card[] => Object.values(host.state.piles).flat();
@@ -80,17 +95,12 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
   /* ---- geometry ---------------------------------------------------------- */
 
-  function layout(): void {
-    // Measuring a hidden or not-yet-laid-out host yields zero and would clamp
-    // every card to the minimum size; try again once it has a box.
-    if (root.clientWidth < 40 || root.clientHeight < 40) {
-      requestAnimationFrame(() => { if (root.isConnected) layout(); });
-      return;
-    }
-    const spec2 = layoutSpec();
-    const gapRatio = spec2.columns >= 10 && root.clientWidth < 700 ? 0.05 : 0.12;
-    fanCap = Math.max(fanCap, requiredRatio(host.state, spec2, gapRatio));
+  const gapRatioNow = (): number =>
+    layoutSpec().columns >= 10 && root.clientWidth < 700 ? 0.05 : 0.12;
 
+  /** Recompute geometry and place the slots. Does not draw the cards. */
+  function applyGeometry(): void {
+    const spec2 = layoutSpec();
     geometry = computeGeometry(host.state, spec2, {
       availableW: root.clientWidth - 20,
       availableH: root.clientHeight - 20,
@@ -108,6 +118,17 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
       const g = geometry.piles[pile];
       if (g) el.style.transform = `translate(${g.x}px,${g.y}px)`;
     }
+  }
+
+  function layout(): void {
+    // Measuring a hidden or not-yet-laid-out host yields zero and would clamp
+    // every card to the minimum size; try again once it has a box.
+    if (root.clientWidth < 40 || root.clientHeight < 40) {
+      requestAnimationFrame(() => { if (root.isConnected) layout(); });
+      return;
+    }
+    fanCap = Math.max(fanCap, requiredRatio(host.state, layoutSpec(), gapRatioNow()));
+    applyGeometry();
     render(host.state);
   }
 
@@ -116,6 +137,13 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
   function render(state: CardState): void {
     if (!geometry) return;
     const spec2 = layoutSpec();
+
+    // A column that just got deeper can outgrow the current card size. The
+    // engine only calls render() after a move, so without this the cards never
+    // shrink during play and the board silently starts scrolling again.
+    const need = requiredRatio(state, spec2, gapRatioNow());
+    if (need > fanCap + 1e-6) { fanCap = need; applyGeometry(); }
+
     let z = 1;
 
     for (const pile of allPiles()) {

@@ -55,7 +55,11 @@ test('a long column compacts the cards instead of scrolling', async ({ page }) =
     for (const key of Object.keys(piles)) piles[key] = [];
     piles['t0'] = pool.slice(0, 34).map((c) => ({ ...(c as object), up: true }));
     piles['stock'] = pool.slice(34).map((c) => ({ ...(c as object), up: false }));
-    shell.view.layout();
+    // Deliberately render without calling layout(). During play the engine only
+    // ever calls render(), so calling layout() here would hide a board that has
+    // stopped resizing itself as columns deepen.
+    (shell as unknown as { session: { state: unknown }; view: { render(s: unknown): void } })
+      .view.render((shell as unknown as { session: { state: unknown } }).session.state);
   });
   await page.waitForTimeout(300);
 

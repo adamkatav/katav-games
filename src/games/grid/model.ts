@@ -86,9 +86,21 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
     attachInput();
 
     observer?.disconnect();
-    observer = new ResizeObserver(() => layout());
+    observer = new ResizeObserver(() => scheduleLayout());
     observer.observe(root);
     layout();
+  }
+
+  // Coalesce into one frame: resizing the board can toggle the host scrollbar,
+  // which resizes the host, which would re-fire the observer.
+  let layoutQueued = false;
+  function scheduleLayout(): void {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => {
+      layoutQueued = false;
+      if (root.isConnected) layout();
+    });
   }
 
   function buildCells(): void {
