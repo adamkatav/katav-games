@@ -1,10 +1,10 @@
 import { Session, type RoundSummary, type SavedRound } from '../core/engine';
-import type { GameDef, GameView, SettingsLike } from '../core/types';
+import type { GameDef, GameView, SettingsLike, ToolbarButton } from '../core/types';
 import {
   loadRound, loadSettings, readBest, saveRound, saveSettings, writeBest,
 } from '../core/storage';
 import { GAMES, HELP_HTML, findGame } from '../games/registry';
-import { append, button, clear, h, toast } from './dom';
+import { button, clear, h, toast } from './dom';
 import { T } from './i18n';
 import {
   close as closeOverlay, confirmDialog, difficultyDialog, formatTime, htmlDialog,
@@ -136,43 +136,99 @@ export function createShell(root: HTMLElement, version: string): void {
     clockTimer = window.setInterval(renderStats, 1000);
   }
 
+  /* Held by reference rather than re-queried: the old code found undo with
+     `.btn.blue`, which only worked while undo happened to be the first blue
+     button, and rebuilt the whole stats bar once a second. */
+  let undoBtn: HTMLButtonElement | null = null;
+  let extraButtons: Array<{ el: HTMLButtonElement; spec: ToolbarButton }> = [];
+  let statFields: Record<string, HTMLElement> = {};
+  let streakEl: HTMLElement | null = null;
+
   function renderBar(def: AnyDef, difficulty: string | undefined): void {
     clear(bar);
-    const extras = view?.toolbar?.() ?? [];
+    extraButtons = [];
+
+    bar.append(button(T.menu, '🏠', toMenu, 'ghost'));
+
+    undoBtn = def.canUndo ? button(T.undo, '↩️', doUndo, 'blue') : null;
+    if (undoBtn) bar.append(undoBtn);          // no button where undo would lie
+
+    bar.append(button(T.hint, '💡', doHint, 'green'));
+
+    for (const spec of view?.toolbar?.() ?? []) {
+      const el = button(spec.label, spec.icon, () => { spec.onClick(); syncToolbar(); },
+        spec.tone ?? 'blue');
+      extraButtons.push({ el, spec });
+      bar.append(el);
+    }
+
     bar.append(
-      button(T.menu, '🏠', toMenu, 'ghost'),
-      button(T.undo, '↩️', doUndo, 'blue'),
-      button(T.hint, '💡', doHint, 'green'),
-      ...extras.map((b) => button(b.label, b.icon, b.onClick, b.tone ?? 'blue')),
       button(T.newGame, '🔄', () => confirmDialog(
         T.confirmNewTitle, T.confirmNewBody, () => start(def, difficulty),
       ), 'red'),
       button('', '⚙️', showSettings, 'ghost'),
       stats,
     );
+
+    buildStats();
+    syncToolbar();
+  }
+
+  function syncToolbar(): void {
+    for (const { el, spec } of extraButtons) {
+      el.classList.toggle('active', spec.isActive?.() ?? false);
+    }
+  }
+
+  function buildStats(): void {
+    clear(stats);
+    statFields = {};
+    const extra = session && view?.stat?.(session.state);
+
+    const add = (key: string, label: string): void => {
+      const value = h('b', {}, '');
+      stats.append(h('span', { class: 'stat' }, `${label} `, value));
+      statFields[key] = value;
+    };
+
+    add('score', T.score);
+    add('moves', T.moves);
+    add('time', T.time);
+    add('best', T.best);
+    if (extra) add('extra', extra.label);
+
+    streakEl = h('span', { class: 'stat streak', hidden: true }, `${T.streak} `, h('b', {}, ''));
+    stats.append(streakEl);
   }
 
   function renderStats(): void {
     if (!session) return;
-    clear(stats);
     const extra = view?.stat?.(session.state) ?? null;
+
+    // A game-specific stat can change its label (Spider's sets vs FreeCell's
+    // cells), so rebuild only when the shape actually differs.
+    if ((extra !== null) !== ('extra' in statFields)) buildStats();
+
+    const set = (key: string, value: string): void => {
+      const el = statFields[key];
+      if (el && el.textContent !== value) el.textContent = value;
+    };
+
+    set('score', String(session.score.total));
+    set('moves', String(session.moves));
+    set('time', formatTime(session.seconds));
+    set('best', readBest(session.bestKey).toLocaleString('he-IL'));
+    if (extra) set('extra', extra.value);
+
     const mult = multiplier(session.score.streak);
+    if (streakEl) {
+      streakEl.hidden = mult <= 1;
+      const b = streakEl.querySelector('b');
+      if (b) b.textContent = `×${mult}`;
+    }
 
-    append(stats,
-      stat(T.score, String(session.score.total)),
-      stat(T.moves, String(session.moves)),
-      stat(T.time, formatTime(session.seconds)),
-      stat(T.best, readBest(session.bestKey).toLocaleString('he-IL')),
-      extra ? stat(extra.label, extra.value) : null,
-      mult > 1 ? h('span', { class: 'stat streak' }, `${T.streak} `, h('b', {}, `×${mult}`)) : null,
-    );
-
-    const undoBtn = bar.querySelector<HTMLButtonElement>('.btn.blue');
     if (undoBtn) undoBtn.disabled = !session.canUndo;
   }
-
-  const stat = (label: string, value: string): HTMLElement =>
-    h('span', { class: 'stat' }, `${label} `, h('b', {}, value));
 
   const multiplier = (streak: number): number =>
     [1, 1, 1.5, 2, 2.5, 3, 4][Math.min(streak, 6)]!;

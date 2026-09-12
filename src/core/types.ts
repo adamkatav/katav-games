@@ -67,6 +67,8 @@ export interface ToolbarButton {
   readonly icon: string;
   readonly tone?: 'green' | 'red' | 'ghost';
   onClick(): void;
+  /** Lit when true — used by mode switches such as reveal/flag. The shell
+   *  re-reads this after every toolbar click, so a toggle shows immediately. */
   isActive?(): boolean;
 }
 

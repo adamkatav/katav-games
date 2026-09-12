@@ -85,6 +85,7 @@ body {
 .bar .btn.ghost { box-shadow: 0 3px 0 #2a333b; }
 .bar .btn.green { box-shadow: 0 3px 0 #0f5730; }
 .bar .btn.red { box-shadow: 0 3px 0 #7d2419; }
+.bar .btn.active { outline: 3px solid var(--gold); outline-offset: 2px; filter: brightness(1.15); }
 
 .stats {
   display: flex; align-items: center; gap: 14px; margin-inline-start: auto;

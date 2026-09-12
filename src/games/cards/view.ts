@@ -302,7 +302,12 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
     board.addEventListener('click', (e) => {
       const loc = locate(e.target);
-      if (loc?.pile === 'stock') { selection = null; spec.onStock?.(host.state, host); }
+      if (!loc) return;
+      if (loc.pile === 'stock') { selection = null; spec.onStock?.(host.state, host); return; }
+      // Empty slots never reach the pointer handlers: pointerdown refuses to
+      // start a drag from one, so pointerup returns early and the tap is lost.
+      // Without this, placing a card on an empty column is impossible.
+      if (loc.index < 0) tap(loc);
     });
   }
 

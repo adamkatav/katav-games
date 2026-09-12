@@ -82,6 +82,55 @@ test('tap to select then tap to place completes a move', async ({ page }) => {
   await expect(page.locator('.card.selected')).toHaveCount(1);
 });
 
+/**
+ * Drives real clicks rather than the JS seam. A unit test that called the tap
+ * handler directly hid this for weeks: empty slots never reached it, because
+ * pointerdown refuses to start a drag from one and pointerup then returns early.
+ */
+test('a card can be placed on an empty column by clicking', async ({ page }) => {
+  await start(page, 'spider', '1');
+
+  // Empty one column, and leave a single movable card on another.
+  await page.evaluate(() => {
+    type Card = { id: number; rank: number; suit: number; up: boolean };
+    const shell = (window as unknown as {
+      __shell: { session: { state: { piles: Record<string, Card[]> } }; view: { layout(): void } };
+    }).__shell;
+    const piles = shell.session.state.piles;
+    const pool = Object.values(piles).flat();
+    for (const key of Object.keys(piles)) piles[key] = [];
+    const card = pool[0]!;
+    card.up = true;
+    piles['t0'] = [card];                       // lone card
+    piles['t1'] = [];                           // the empty column
+    for (let i = 2; i < 10; i++) {
+      const filler = pool[i]!;
+      filler.up = true;
+      piles[`t${i}`] = [filler];
+    }
+    piles['stock'] = pool.slice(10).map((c) => ({ ...c, up: false }));
+    shell.view.layout();
+  });
+  await page.waitForTimeout(300);
+
+  const before = await page.evaluate(() => {
+    const s = (window as unknown as { __shell: { session: { state: { piles: Record<string, unknown[]> } } } }).__shell;
+    return { t0: s.session.state.piles['t0']!.length, t1: s.session.state.piles['t1']!.length };
+  });
+  expect(before).toEqual({ t0: 1, t1: 0 });
+
+  await page.locator('.card.up').first().click();
+  await expect(page.locator('.card.selected')).toHaveCount(1);
+  await page.locator('.slot[data-pile="t1"]').click();
+  await page.waitForTimeout(300);
+
+  const after = await page.evaluate(() => {
+    const s = (window as unknown as { __shell: { session: { state: { piles: Record<string, unknown[]> } } } }).__shell;
+    return { t0: s.session.state.piles['t0']!.length, t1: s.session.state.piles['t1']!.length };
+  });
+  expect(after, 'the card must land in the empty column').toEqual({ t0: 0, t1: 1 });
+});
+
 test('settings persist across a reload', async ({ page }) => {
   await page.locator('.btn.ghost', { hasText: 'הגדרות' }).click();
   await page.locator('.seg-btn', { hasText: 'מופעל' }).first().click();
