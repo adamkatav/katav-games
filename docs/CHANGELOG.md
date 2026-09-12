@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.13.0 (2026-09-12)
+
+### Feat
+
+- **ui**: rebuild the home screen so it never scrolls
+
 ## v0.12.1 (2026-09-12)
 
 ### Feat
