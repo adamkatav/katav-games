@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.4.0 (2026-09-12)
+
+### Feat
+
+- **ui**: show version and byline at the bottom left of the home screen
+
 ## v0.3.0 (2026-09-12)
 
 ### Feat
