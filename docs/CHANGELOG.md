@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.12.1 (2026-09-12)
+
+### Fix
+
+- show hint messages, record high scores, and unreverse 2048
+
 ## v0.12.0 (2026-09-12)
 
 **Renamed to `katav-games`.** It is a game box, not a solitaire app — six games now, only
