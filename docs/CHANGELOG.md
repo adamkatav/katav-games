@@ -8,6 +8,16 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v0.6.0 (2026-09-12)
+
+### Feat
+
+- **ui**: crest app icon, and the high score in each game status bar
+
+### Fix
+
+- **layout**: compact the cards instead of letting the board scroll
+
 ## v0.5.0 (2026-09-12)
 
 ### Feat
