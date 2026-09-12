@@ -221,6 +221,58 @@ test('settings persist across a reload', async ({ page }) => {
   expect(marks).toBe(true);
 });
 
+/**
+ * The design is light-only. A browser re-tinting it makes the suits and the
+ * Minesweeper numbers harder to tell apart, so this pins the two schemes to the
+ * same pixels rather than merely checking the meta tag is present.
+ */
+test('looks identical whether the device is light or dark', async ({ browser }) => {
+  const sample = async (colorScheme: 'light' | 'dark'): Promise<unknown> => {
+    const context = await browser.newContext({ colorScheme });
+    const page = await context.newPage();
+    await page.goto('/katav-games/');
+    await page.waitForSelector('.game-card');
+    await page.evaluate(() => {
+      (window as unknown as { __shell: { start(g: string, d?: string): void } })
+        .__shell.start('minesweeper', 'easy');
+    });
+    await page.waitForTimeout(500);
+
+    const styles = await page.evaluate(() => {
+      const of = (selector: string, props: string[]): Record<string, string> => {
+        const el = document.querySelector(selector);
+        if (!el) return { missing: selector };
+        const cs = getComputedStyle(el);
+        return Object.fromEntries(props.map((p) => [p, cs.getPropertyValue(p)]));
+      };
+      return {
+        prefersDark: matchMedia('(prefers-color-scheme: dark)').matches,
+        scheme: getComputedStyle(document.documentElement).colorScheme,
+        html: of('html', ['background-color']),
+        body: of('body', ['color', 'background-image']),
+        bar: of('.bar', ['background-color']),
+        button: of('.btn', ['color', 'background-image']),
+        cell: of('.cell', ['color', 'background-image', 'border-top-color']),
+        stat: of('.stat b', ['color']),
+      };
+    });
+    await context.close();
+    return styles;
+  };
+
+  const light = await sample('light') as Record<string, unknown>;
+  const dark = await sample('dark') as Record<string, unknown>;
+
+  expect(light['prefersDark']).toBe(false);
+  expect(dark['prefersDark'], 'the dark context must really be dark').toBe(true);
+  expect(dark['scheme'], 'the page must declare itself light-only').toBe('light');
+
+  // Everything else must match exactly.
+  const { prefersDark: _l, ...lightRest } = light;
+  const { prefersDark: _d, ...darkRest } = dark;
+  expect(darkRest).toEqual(lightRest);
+});
+
 test('registers a service worker so it works offline', async ({ page }) => {
   const registered = await page.evaluate(async () => {
     for (let i = 0; i < 40; i++) {

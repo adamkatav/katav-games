@@ -12,7 +12,20 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/*
+ * This design is light-only on purpose: the felt, the cards and the crest carry
+ * their own colours, and a browser re-tinting them makes the suits and the
+ * Minesweeper numbers harder to tell apart, not easier. Declaring the scheme is
+ * what opts us out of automatic dark-mode inversion.
+ */
+:root { color-scheme: light; }
+
 html, body { height: 100%; margin: 0; }
+
+/* html gets the colour too, so overscroll and the area behind the page match
+   rather than showing the browser's own canvas. */
+html { background: var(--felt-2); }
 
 body {
   font-family: var(--font);
@@ -21,6 +34,14 @@ body {
   background: radial-gradient(ellipse at 50% 0%, var(--felt-1), var(--felt-2) 75%);
   overflow: hidden;
   touch-action: manipulation;
+  scrollbar-color: rgb(255 255 255 / 35%) rgb(0 0 0 / 20%);
+}
+
+/* Scrollbars inside the app follow the felt rather than the system theme. */
+.board-host::-webkit-scrollbar { width: 12px; height: 12px; }
+.board-host::-webkit-scrollbar-track { background: rgb(0 0 0 / 20%); }
+.board-host::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 35%); border-radius: 6px;
 }
 
 #app { height: 100%; }
