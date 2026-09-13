@@ -105,6 +105,26 @@ Each of these shipped. Do not re-learn them.
    that carry meaning.
 6. **Hints carry messages.** For Sudoku, Minesweeper and 2048 the message *is* the
    hint. Surface it for every hint kind, not just some.
+7. **A hint must never reason from what the player believes.** Minesweeper's
+   solver treats a flag as a known mine, so one misplaced flag made it hand out
+   "safe" cells that were live mines; Sudoku's hint took a wrong digit as given
+   and suggested digits that could not be right. Both now check the player's
+   input against the truth first and point at the mistake instead. A hint that
+   can get the player killed breaks the only promise these games make.
+8. **A refusal must explain *itself*, not recite the nearest rule.** Dropping a
+   card on the deck used to answer "put it on a card one bigger in the opposite
+   colour". A wrong reason is worse than none — it sends the player looking for
+   something that isn't there.
+
+## Where an action lives
+
+Each game's action is one exported function, and the view calls it rather than
+owning it: `cards/moves.ts` (`performMove`, `attemptMove`), `g2048/def.ts`
+(`performMove`), `sudoku/def.ts` (`placeDigit`), and the grid games' `onCell`.
+
+That is what lets `tests/unit/*.scenarios.test.ts` drive the shipped code
+headlessly — a position, one action, and the whole board afterwards. It does not
+replace trap 1: dispatching the event is still the browser suite's job.
 
 ## Windows gotchas
 
@@ -137,7 +157,9 @@ That happened twice; both times the changelog had to be corrected by hand.
 4. Hebrew strings into `ui/i18n.ts`; help text into the registry's `HELP_HTML`.
 5. Unit-test the rules, and the fairness property if it generates boards
    (solvable without guessing; exactly one solution).
-6. Update the home-lists-every-game e2e expectation.
+6. Add a scenario table — position, action, whole board afterwards — covering
+   every state the game can be in on its hardest setting, refusals included.
+7. Update the home-lists-every-game e2e expectation.
 
 If a game needs to reach past the seam into the score, undo or timer, the seam is
 wrong — fix the seam.
@@ -151,3 +173,7 @@ wrong — fix the seam.
 - Updates apply on next launch (`skipWaiting: false`), which is right for the player
   but means a browser tab you keep reloading may sit on an old build. An
   "update available" prompt has been offered but not built.
+- The home screen offers only the first suspended round it finds. A second one is
+  still on disk and still resumable by starting that game, but nothing points at it.
+- `T.stuckTitle` / `T.stuckBody` are written but never shown: a card game with no
+  move left just says "אין מהלך זמין" through the hint button.

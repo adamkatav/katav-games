@@ -52,6 +52,7 @@ src/
 art/            source PNGs, hashed and precached at build time
 tools/          re-cut, compress and re-embed the artwork; build the icon
 tests/unit/     rules, scoring invariants, generators — milliseconds
+  scenarios/      the state → action → state harness each game's table runs on
 tests/e2e/      layout, real input, service worker — Playwright
 docs/           ARCHITECTURE · DESIGN · GAMES · CHANGELOG · ART-PROMPTS
 legacy/         the original single-file version, kept for reference
@@ -84,6 +85,12 @@ Split by what each tool is good at:
   Minesweeper generator is checked for being solvable by logic alone with a guaranteed-safe
   first click; the Sudoku generator for having exactly one solution. Both are properties,
   run over many seeds, and finish in about a second.
+- **Scenario tables** (`tests/unit/*.scenarios.test.ts`) — each game on its hardest
+  setting, written as a position, one action, and the whole board afterwards. Cards are
+  written out as `{ t0: 'KS QH ?7D' }`, Minesweeper as a picture that carries both what
+  the player sees and what is under the board, Sudoku and 2048 as grids. Every position
+  is rendered back and compared before the action runs, so a case that describes an
+  impossible board fails rather than quietly testing something else.
 - **Playwright** — layout that must not scroll, real clicks, the PWA. Desktop and phone.
 
 Tests reach the app through `window.__shell`, which is read-only and grants nothing a
