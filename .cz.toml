@@ -8,4 +8,6 @@ version_files = ["package.json:\"version\""]
 update_changelog_on_bump = true
 changelog_incremental = true
 changelog_file = "docs/CHANGELOG.md"
-major_version_zero = true
+# Past 1.0.0: the game box is in the family's hands, so a breaking change is a
+# real major, not a footnote in the minor.
+major_version_zero = false
