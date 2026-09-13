@@ -93,6 +93,7 @@ export const spiderSpec: CardSpec = {
   },
 
   whyNot(state, _run, dest) {
+    if (dest === 'stock') return 'אי אפשר להניח קלפים על החפיסה';
     if (COMPLETED.includes(dest)) return 'הערימות למעלה מתמלאות לבד כשמשלימים סדרה';
     const t = topOf(state.piles, dest);
     if (!t) return '';                      // legal, so there is nothing to explain

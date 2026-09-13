@@ -91,6 +91,8 @@ export const minesweeperSpec: GridSpec<MinesweeperState> = {
     const dead = s.dead !== null;
 
     if (!s.revealed[i]) {
+      // After a loss every mine is shown: the ones the player had marked in
+      // green, so a correct flag is credited, and the rest plainly.
       if (dead && isMine(s, i)) {
         return { text: '💣', cls: s.flags[i] ? 'open mine found' : 'open mine' };
       }
@@ -98,6 +100,7 @@ export const minesweeperSpec: GridSpec<MinesweeperState> = {
       return { cls: 'hidden' };
     }
 
+    // The only uncovered mine is the one that ended the round.
     if (isMine(s, i)) return { text: '💥', cls: 'open mine blast' };
     const n = adjacentCount(boardOf(s), i);
     return n === 0 ? { cls: 'open' } : { text: String(n), cls: `open n${n}` };
@@ -137,7 +140,6 @@ export const minesweeperSpec: GridSpec<MinesweeperState> = {
           if (d.mines.includes(n)) {          // a wrong flag makes chording fatal
             d.dead = n;
             d.revealed[n] = true;
-            for (const m of d.mines) d.revealed[m] = true;
             return;
           }
           flood(live, revealed, n);
@@ -162,9 +164,11 @@ export const minesweeperSpec: GridSpec<MinesweeperState> = {
       }
 
       if (d.mines.includes(i)) {
+        // Only this one is uncovered. The rest are shown by `cell` because the
+        // round is over, which keeps `revealed` meaning "the player found it"
+        // and lets the board say which mine was the fatal one.
         d.dead = i;
         d.revealed[i] = true;
-        for (const m of d.mines) d.revealed[m] = true;   // show what happened
         return;
       }
 
@@ -200,6 +204,17 @@ export const minesweeperSpec: GridSpec<MinesweeperState> = {
   hint(s): Hint | null {
     if (!s.started || s.dead !== null) return null;
     const { revealed, flagged } = setsOf(s);
+
+    // Every deduction treats a flag as a known mine, so one flag in the wrong
+    // place makes the solver hand out "safe" cells that are anything but — the
+    // hint would get the player killed. A misplaced flag is the real problem
+    // and the more useful thing to say.
+    for (const i of flagged) {
+      if (!isMine(s, i)) {
+        return { kind: 'cell', index: i, message: 'הדגל הזה לא במקום — אין כאן מוקש' };
+      }
+    }
+
     const step = deduce(boardOf(s), revealed, flagged);
     if (!step) return null;
 

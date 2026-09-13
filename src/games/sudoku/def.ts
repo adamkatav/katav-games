@@ -22,6 +22,9 @@ const DIFFICULTIES: readonly Difficulty[] = [
   { id: 'hard', label: 'קשה' },
 ];
 
+/** Why a cell will not budge. A buzz alone leaves the player guessing. */
+const LOCKED = 'הספרה הזאת הגיעה עם הלוח ואי אפשר לשנות אותה';
+
 const TECHNIQUE_TEXT: Record<string, string> = {
   'naked-single': 'בתא הזה נשארה רק אפשרות אחת',
   'hidden-single': 'זה המקום היחיד בשורה, בטור או בריבוע שהספרה הזאת יכולה להיכנס בו',
@@ -80,6 +83,7 @@ export const sudokuSpec: GridSpec<SudokuState> = {
   onCell(s, i, host: ViewHost<SudokuState>) {
     if (s.puzzle[i] !== 0) {                   // givens are locked
       host.commit((d) => { d.selected = i; }, { undoable: false, free: true });
+      host.toast(LOCKED);
       host.sound.bad();
       return;
     }
@@ -105,6 +109,15 @@ export const sudokuSpec: GridSpec<SudokuState> = {
   },
 
   hint(s): Hint | null {
+    // A wrong digit that clashes with nothing is invisible on the board, and
+    // every deduction below would take it as given and suggest something that
+    // cannot be right. Point at the mistake instead.
+    for (let i = 0; i < CELLS; i++) {
+      if (s.puzzle[i] === 0 && s.entries[i] !== 0 && s.entries[i] !== s.solution[i]) {
+        return { kind: 'cell', index: i, message: 'הספרה הזאת לא נכונה — כדאי למחוק אותה' };
+      }
+    }
+
     const step = nextStep(merged(s));
     if (!step) return null;
     return {
@@ -142,14 +155,14 @@ export const sudokuSpec: GridSpec<SudokuState> = {
       const b = document.createElement('button');
       b.type = 'button';
       b.textContent = String(d);
-      b.addEventListener('click', () => { place(host, d); refresh(); });
+      b.addEventListener('click', () => { placeDigit(host, d); refresh(); });
       pad.append(b);
     }
 
     const erase = document.createElement('button');
     erase.type = 'button';
     erase.textContent = '⌫';
-    erase.addEventListener('click', () => { place(host, 0); refresh(); });
+    erase.addEventListener('click', () => { placeDigit(host, 0); refresh(); });
     pad.append(erase);
 
     return pad;
@@ -174,11 +187,15 @@ const boxShade = (i: number): boolean => {
   return (band + stack) % 2 === 1;
 };
 
-function place(host: ViewHost<SudokuState>, digit: number): void {
+/**
+ * Write a digit (or 0 to erase) into the selected cell. Exported so a scripted
+ * test drives the same function the number pad's buttons call.
+ */
+export function placeDigit(host: ViewHost<SudokuState>, digit: number): void {
   const s = host.state;
   const i = s.selected;
   if (i === null) { host.toast('קודם בוחרים תא'); host.sound.bad(); return; }
-  if (s.puzzle[i] !== 0) { host.sound.bad(); return; }
+  if (s.puzzle[i] !== 0) { host.toast(LOCKED); host.sound.bad(); return; }
 
   host.commit((d) => {
     if (digit === 0) { d.entries[i] = 0; d.pencil[i] = 0; return; }

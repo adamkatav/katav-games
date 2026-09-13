@@ -67,6 +67,8 @@ export const klondikeSpec: CardSpec = {
   },
 
   whyNot(state, run, dest) {
+    // The deck answers for itself, or the tableau's rule gets quoted at it.
+    if (dest === 'stock' || dest === 'waste') return 'אי אפשר להחזיר קלפים לחפיסה';
     const t = topOf(state.piles, dest);
     if (FOUNDATIONS.includes(dest)) {
       if (run.length > 1) return 'לערימת הסיום מעבירים קלף אחד בכל פעם';
@@ -79,7 +81,12 @@ export const klondikeSpec: CardSpec = {
 
   onStock(state, host: ViewHost<CardState>) {
     const { stock, waste } = state.piles as { stock: Card[]; waste: Card[] };
-    if (stock.length === 0 && waste.length === 0) return false;
+    if (stock.length === 0 && waste.length === 0) {
+      // A tap that does nothing and says nothing reads as a broken game.
+      host.toast('אין יותר קלפים בחפיסה');
+      host.sound.bad();
+      return false;
+    }
     host.commit((draft) => {
       const s = draft.piles['stock']!, w = draft.piles['waste']!;
       if (s.length > 0) {
