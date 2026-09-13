@@ -211,6 +211,56 @@ test('sudoku: tap a cell then a digit, and givens stay locked', async ({ page })
   await expect(page.locator('.cell').nth(givenIndex)).toHaveText(givenText ?? '');
 });
 
+/**
+ * A loss has to be readable: which mine went off, and which flags were right.
+ * Every mine used to be drawn as the same explosion.
+ */
+test('minesweeper: a loss shows one blast, not a board full of them', async ({ page }) => {
+  await start(page, 'minesweeper', 'easy');
+  await page.locator('.cell').nth(40).click();          // generates the board
+
+  const mine = await page.evaluate(() =>
+    (window as unknown as { __shell: { session: { state: { mines: number[] } } } })
+      .__shell.session.state.mines[0]!);
+  await page.locator('.cell').nth(mine).click();
+
+  await expect(page.locator('.cell.blast')).toHaveCount(1);
+  await expect(page.locator('.cell.mine:not(.blast)'), 'the other nine are shown, not detonated')
+    .toHaveCount(9);
+});
+
+/** The help promises the player may carry on past 2048, so the button exists. */
+test('2048: reaching 2048 offers to carry on', async ({ page }) => {
+  await start(page, 'g2048');
+  await page.evaluate(() => {
+    const shell = (window as unknown as {
+      __shell: { session: { state: { tiles: unknown[] } }; view: { render(s: unknown): void } };
+    }).__shell;
+    shell.session.state.tiles = [
+      { id: 901, value: 1024, at: 0 },
+      { id: 902, value: 1024, at: 1 },
+    ];
+    shell.view.render(shell.session.state);
+  });
+
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('.panel .final-score')).toBeVisible();
+
+  await page.locator('.panel .btn', { hasText: 'להמשיך מכאן' }).click();
+  await expect(page.locator('.overlay')).toHaveCount(0);
+
+  await page.keyboard.press('ArrowDown');
+  const after = await page.evaluate(() => {
+    const s = (window as unknown as {
+      __shell: { session: { outcome: string; moves: number; state: { keepGoing: boolean } } };
+    }).__shell.session;
+    return { outcome: s.outcome, moves: s.moves, keepGoing: s.state.keepGoing };
+  });
+  expect(after.keepGoing).toBe(true);
+  expect(after.outcome, 'the round is live again').toBe('playing');
+  expect(after.moves, 'and it accepts moves').toBeGreaterThan(1);
+});
+
 test('settings persist across a reload', async ({ page }) => {
   await page.locator('.btn.ghost', { hasText: 'הגדרות' }).click();
   await page.locator('.seg-btn', { hasText: 'מופעל' }).first().click();
