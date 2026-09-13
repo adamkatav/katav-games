@@ -26,6 +26,27 @@ const ARROWS: ReadonlyArray<{ dir: Direction; icon: string; label: string; area:
   { dir: 'right', icon: '→', label: 'ימינה', area: '2 / 3 / 3 / 4' },
 ];
 
+/**
+ * One move in a direction: slide, spawn, and note the target being reached.
+ *
+ * Exported so a scripted test drives the same code the arrow buttons, the keys
+ * and a swipe all funnel into. A direction that changes nothing is refused
+ * before `commit`, so it costs neither a move nor an undo step — the move count
+ * feeds par and the stars, and pressing into a wall is not a move.
+ */
+export function performMove(host: ViewHost<G2048State>, dir: Direction): boolean {
+  const probe = JSON.parse(JSON.stringify(host.state)) as G2048State;
+  if (!slide(probe, dir).moved) { host.sound.bad(); return false; }
+
+  host.commit((d) => {
+    slide(d, dir);
+    spawn(d);
+    if (!d.reached && maxTile(d) >= TARGET) d.reached = true;
+  });
+  host.sound.place();
+  return true;
+}
+
 export const g2048: GameDef<G2048State> = {
   id: 'g2048' as GameDef<G2048State>['id'],
   name: '2048',
@@ -42,6 +63,10 @@ export const g2048: GameDef<G2048State> = {
 
   isWon: (s) => s.reached && !s.keepGoing,
   isLost: (s) => !canMove(s),
+
+  // The help says the player may carry on past 2048, so they can: the round
+  // reopens and from then on ends only when the board fills up.
+  continueAfterWin: (s) => { s.keepGoing = true; },
 
   hint(s): Hint | null {
     // Suggest a direction that actually changes the board, preferring one that
@@ -132,18 +157,7 @@ function createBoardView(host: ViewHost<G2048State>): GameView<G2048State> {
     });
   }
 
-  function move(dir: Direction): void {
-    if (!canMove(host.state)) return;
-    let moved = false;
-    host.commit((d) => {
-      moved = slide(d, dir).moved;
-      if (!moved) return;
-      spawn(d);
-      if (!d.reached && maxTile(d) >= TARGET) d.reached = true;
-    });
-    if (!moved) { host.sound.bad(); return; }
-    host.sound.place();
-  }
+  const move = (dir: Direction): void => { performMove(host, dir); };
 
   let layoutQueued = false;
   function scheduleLayout(): void {

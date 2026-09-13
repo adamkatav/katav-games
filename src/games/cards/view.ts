@@ -4,6 +4,7 @@ import { topOf } from './deck';
 import { BACK_URL, CREST_URL, faceSvg } from './art';
 import { cardPosition, computeGeometry, requiredRatio, type Geometry } from './layout';
 import type { CardSpec, CardState } from './model';
+import { attemptMove, performMove } from './moves';
 
 interface Location { pile: PileId; index: number }
 
@@ -20,6 +21,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
   let selection: Location | null = null;
   let emptyColumns = new Set<PileId>();
   let resizeObserver: ResizeObserver | null = null;
+  let destroyed = false;
 
   const slots = new Map<PileId, HTMLElement>();
   const cardEls = new Map<number, HTMLElement>();
@@ -308,17 +310,10 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
       const rect = board.getBoundingClientRect();
       const dest = pileAt(e.clientX - rect.left, e.clientY - rect.top);
-      if (dest && spec.canDrop(host.state, d.cards, dest, d.from.pile)) {
-        move(d.from, dest);
-      } else {
-        if (dest && dest !== d.from.pile) {
-          const why = spec.whyNot(host.state, d.cards, dest);
-          if (why) host.toast(why);
-        }
-        host.sound.bad();
-        selection = null;
-        render(host.state);
-      }
+      selection = null;
+      if (dest && attemptMove(host, spec, d.from.pile, d.from.index, dest)) return;
+      if (!dest) host.sound.bad();          // dropped on nothing at all
+      render(host.state);
     });
 
     board.addEventListener('pointercancel', () => {
@@ -403,14 +398,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
   function move(from: Location, to: PileId): void {
     selection = null;
-    host.commit((draft) => {
-      const source = draft.piles[from.pile]!;
-      const run = source.splice(from.index);
-      if (run.length === 0) return;
-      draft.piles[to]!.push(...run);
-      spec.afterMove?.(draft, host);
-    });
-    host.sound[to.startsWith('f') ? 'found' : 'place']();
+    performMove(host, spec, from.pile, from.index, to);
   }
 
   /* ---- public ------------------------------------------------------------ */
@@ -419,7 +407,13 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
     mount,
     render,
     layout,
-    destroy() { resizeObserver?.disconnect(); root.innerHTML = ''; slots.clear(); cardEls.clear(); },
+    destroy() {
+      destroyed = true;
+      resizeObserver?.disconnect();
+      root.innerHTML = '';
+      slots.clear();
+      cardEls.clear();
+    },
     stat: (state) => spec.stat?.(state) ?? null,
     toolbar(): readonly ToolbarButton[] {
       if (spec.id === 'spider') return [];
@@ -445,6 +439,10 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
   function autoCollect(): void {
     const step = (): void => {
+      // The chain runs on a timer. Without this guard, leaving the round
+      // mid-collect kept moving cards in the abandoned session — which could
+      // overwrite the new round's save and pop its outcome dialog minutes later.
+      if (destroyed) return;
       const sources = allPiles().filter((p) => !p.startsWith('f'));
       for (const p of sources) {
         const t = topOf(host.state.piles, p);
