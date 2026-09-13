@@ -8,6 +8,17 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v1.0.0 (2026-09-13)
+
+### Fix
+
+- **games**: never let a hint lie, and give every refusal its own reason
+- **engine**: keep a finished round finished, and let 2048 carry on
+
+### Refactor
+
+- **games**: route every action through one callable function
+
 ## v0.14.1 (2026-09-12)
 
 ### Fix
