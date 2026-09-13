@@ -78,6 +78,17 @@ generates from `(seed, firstClick)`; 2048 spawns from `(seed, spawns)`.
 
 - Geometry is computed from the viewport, never fixed pixels.
 - **The board must never scroll.** Pieces shrink instead. This regressed twice.
+- **Sideways on a phone there is no spare height.** Game-owned controls (a number
+  pad, a D-pad) move *beside* the board under
+  `(orientation: landscape) and (max-height: 560px)`; the layout code reads that
+  back off the computed `flex-direction` rather than repeating the query, so the
+  two cannot drift. Stacked, the Sudoku pad pushed its board 124px off the bottom.
+- **`clientWidth`/`clientHeight` include the element's own padding.** Size a board
+  from them without subtracting it and it overflows by exactly that much — use
+  `paddingOf()`.
+- **The toolbar is not a fixed height.** The combo chip appears mid-round and the
+  stats row wraps, so the board has to fit the *taller* bar, not the one on screen
+  when it was measured.
 - Spacing is derived from a typical worst case, not the live board, so it does not
   shift under the player after every move.
 - Compression stops where the identifying mark (a card's rank, a cell's number) is
@@ -169,7 +180,11 @@ wrong — fix the seam.
 - Minesweeper Expert (30×16) generation takes ~200ms, because proving a board needs
   no guessing means solving many candidates. Acceptable once per round; the clearest
   candidate for moving into a Web Worker if it ever grates.
-- Expert scrolls sideways on a phone — the honest cost of the real board size.
+- **Minesweeper keeps the real Windows board sizes, and only the 9×9 fits a phone.**
+  16 columns at a cell this player can read *and hit* is 510px across, 30 columns is
+  958; a phone is 412. Shrinking to fit would mean a 23px target, far under what a
+  finger can land on, so Intermediate and Expert scroll instead. `tests/e2e/phone.spec.ts`
+  pins all three, so this stays a decision rather than becoming a surprise.
 - Updates apply on next launch (`skipWaiting: false`), which is right for the player
   but means a browser tab you keep reloading may sit on an old build. An
   "update available" prompt has been offered but not built.

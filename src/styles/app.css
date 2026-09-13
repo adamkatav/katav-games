@@ -309,8 +309,17 @@ body {
 .toast.on { opacity: 1; }
 .confetti { position: fixed; inset: 0; z-index: 10500; pointer-events: none; }
 
+/*
+ * On a phone the stats drop to their own row under the buttons. They must wrap:
+ * the combo chip is a sixth item that appears mid-round, and on one nowrap line
+ * it pushed itself a hundred pixels off the edge of the screen — in RTL, off the
+ * left edge, where nothing hinted it was there at all.
+ */
 @media (max-width: 900px) {
-  .stats { order: 9; width: 100%; margin: 4px 0 0; justify-content: space-around; }
+  .stats {
+    order: 9; width: 100%; margin: 4px 0 0;
+    flex-wrap: wrap; justify-content: center; gap: 5px 13px; font-size: 17px;
+  }
 }
 @media (max-width: 620px) {
   .bar .btn { gap: 6px; padding: 9px 11px; font-size: 16px; }
@@ -356,6 +365,26 @@ body {
 
 /* game-owned controls under the board: number pads, arrow buttons */
 .pad { display: grid; gap: 8px; justify-content: center; }
+
+/*
+ * A phone on its side has no height to spare and width going begging, so the
+ * controls move beside the board instead of under it. Stacked, the number pad
+ * pushed a Sudoku board 124px past the bottom of the screen and the 2048 pad 64.
+ * The layout code reads this back off the computed direction, so the rule lives
+ * here alone and the two cannot drift apart.
+ */
+@media (orientation: landscape) and (max-height: 560px) and (min-width: 620px) {
+  .grid-board { flex-direction: row; justify-content: center; }
+
+  /* Every row the toolbar takes comes straight out of the board, and sideways
+     there are only ~360 of them to go round. */
+  /* The toolbar grows by a few pixels when the combo chip appears mid-round, so
+     the board has to fit the taller one — there is no room to be generous. */
+  .board-host { padding: 2px; }
+  .bar { gap: 6px; padding: 5px 8px; }
+  .bar .btn { padding: 7px 11px; font-size: 16px; border-radius: 9px; }
+  .stats { margin-top: 2px; font-size: 16px; gap: 3px 11px; }
+}
 .pad button {
   min-width: 56px; min-height: 56px; padding: 0 12px;
   font: 800 24px var(--font); color: #16304a;

@@ -1,7 +1,7 @@
 import type {
   Difficulty, GameDef, GameId, GameView, Hint, Par, Rng, ToolbarButton, ViewHost,
 } from '../../core/types';
-import { cellPosition, computeGridGeometry, type GridGeometry } from './layout';
+import { cellPosition, computeGridGeometry, paddingOf, type GridGeometry } from './layout';
 
 /** How one cell should look right now. Games return this; the view draws it. */
 export interface CellView {
@@ -137,12 +137,22 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
     const { cols, rows } = dims();
     if (cells.length !== cols * rows) buildCells();
 
-    const reserved = controls ? controls.offsetHeight + 14 : 0;
+    // Where the stylesheet has put the controls beside the board — a phone on
+    // its side — they cost width, not height. Reading it back rather than
+    // repeating the media query keeps the two from drifting apart.
+    const beside = controls !== null && getComputedStyle(board).flexDirection.startsWith('row');
+    const reservedW = controls && beside ? controls.offsetWidth + 14 : 0;
+    const reservedH = controls && !beside ? controls.offsetHeight + 14 : 0;
+    // clientWidth/Height include the host's own padding, so measure it rather
+    // than assuming: the stylesheet tightens it on a phone held sideways, and a
+    // guess either wastes space or overflows by exactly the difference.
+    const inset = paddingOf(root);
+
     geometry = computeGridGeometry({
       cols, rows,
-      availableW: root.clientWidth - 20,
-      availableH: root.clientHeight - 20,
-      reservedH: reserved,
+      availableW: root.clientWidth - inset.x - reservedW,
+      availableH: root.clientHeight - inset.y,
+      reservedH,
       sizeScale: host.settings.size,
       ...(spec.minCell !== undefined ? { minCell: spec.minCell } : {}),
       ...(spec.gapRatio !== undefined ? { gapRatio: spec.gapRatio } : {}),

@@ -1,5 +1,5 @@
 import type { GameDef, GameView, Hint, Rng, ViewHost } from '../../core/types';
-import { computeGridGeometry, type GridGeometry } from '../grid/layout';
+import { computeGridGeometry, paddingOf, type GridGeometry } from '../grid/layout';
 import {
   CELLS, SIZE, TARGET, canMove, createState, maxTile, slide, spawn,
   type Direction, type G2048State,
@@ -171,11 +171,16 @@ function createBoardView(host: ViewHost<G2048State>): GameView<G2048State> {
       requestAnimationFrame(() => { if (root.isConnected) layout(); });
       return;
     }
+    // Beside the board on a phone held sideways, under it everywhere else; the
+    // stylesheet decides and this reads the answer back.
+    const beside = getComputedStyle(wrap).flexDirection.startsWith('row');
+    const inset = paddingOf(root);
+
     geometry = computeGridGeometry({
       cols: SIZE, rows: SIZE,
-      availableW: root.clientWidth - 20,
-      availableH: root.clientHeight - 20,
-      reservedH: pad.offsetHeight + 14,
+      availableW: root.clientWidth - inset.x - (beside ? pad.offsetWidth + 14 : 0),
+      availableH: root.clientHeight - inset.y,
+      reservedH: beside ? 0 : pad.offsetHeight + 14,
       sizeScale: host.settings.size,
       minCell: 54,
       maxCell: 150,

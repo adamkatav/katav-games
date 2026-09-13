@@ -57,6 +57,19 @@ export function computeGridGeometry(input: GridLayoutInput): GridGeometry {
   };
 }
 
+/**
+ * An element's own padding. `clientWidth`/`clientHeight` include it, so a board
+ * sized from those without subtracting it overflows by exactly that much.
+ */
+export function paddingOf(el: HTMLElement): { x: number; y: number } {
+  const cs = getComputedStyle(el);
+  const n = (v: string): number => parseFloat(v) || 0;
+  return {
+    x: n(cs.paddingLeft) + n(cs.paddingRight),
+    y: n(cs.paddingTop) + n(cs.paddingBottom),
+  };
+}
+
 /** Top-left corner of a cell, in board coordinates. */
 export function cellPosition(
   geometry: GridGeometry, cols: number, index: number, rtl: boolean,

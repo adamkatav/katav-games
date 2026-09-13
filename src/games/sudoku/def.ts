@@ -38,7 +38,10 @@ export const sudokuSpec: GridSpec<SudokuState> = {
   difficulties: DIFFICULTIES,
   canUndo: true,
   hasLoss: false,          // Sudoku has no losing condition; do not invent one
-  minCell: 32,
+  // The same floor Minesweeper uses for the same job — a digit that has to stay
+  // readable. Only ever reached on a phone held sideways, where the alternative
+  // is a grid with two of its rows off the screen.
+  minCell: 30,
   gapRatio: 0,             // cells touch, so the box lines can run unbroken
   gridClass: 'sudoku-grid',
 
