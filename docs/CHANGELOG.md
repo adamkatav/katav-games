@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v1.0.1 (2026-09-13)
+
+### Fix
+
+- **layout**: keep the board and the combo chip on a phone screen
+
 ## v1.0.0 (2026-09-13)
 
 ### Fix

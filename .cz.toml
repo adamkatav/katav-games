@@ -1,6 +1,6 @@
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.0.0"
+version = "1.0.1"
 tag_format = "v$version"
 # package.json is the single source of truth: vite.config.ts reads it and
 # defines __APP_VERSION__, so the version on screen cannot drift from the tag.
