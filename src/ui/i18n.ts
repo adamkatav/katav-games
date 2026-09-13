@@ -23,6 +23,7 @@ export const T = {
   wellDone: '🎉 כל הכבוד!',
   notThisTime: 'הפעם לא הסתדר',
   playAgain: 'עוד משחק',
+  keepGoing: 'להמשיך מכאן',
   newBest: '⭐ שיא חדש! ⭐',
 
   confirmNewTitle: 'להתחיל משחק חדש?',

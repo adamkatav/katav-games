@@ -89,6 +89,12 @@ export interface GameDef<S> {
   isLost?(state: S): boolean;
   hint(state: S): Hint | null;
   par(difficulty?: string): Par;
+  /**
+   * Let the round carry on after it has been won, where that means something:
+   * 2048 past its 2048 tile. Mutates the state so `isWon` stops being true.
+   * Games without a "keep going" simply leave it out.
+   */
+  continueAfterWin?(state: S): void;
 
   createView(host: ViewHost<S>): GameView<S>;
 }

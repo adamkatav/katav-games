@@ -53,7 +53,8 @@ export function difficultyDialog(
 
 export function outcomeDialog(
   outcome: 'won' | 'lost', summary: RoundSummary,
-  actions: { again: () => void; menu: () => void }, sound: { star(i: number): void; win(): void },
+  actions: { again: () => void; menu: () => void; carryOn?: () => void },
+  sound: { star(i: number): void; win(): void },
 ): void {
   const starsRow = h('div', { class: 'stars' });
   for (let i = 0; i < 5; i++) {
@@ -71,6 +72,10 @@ export function outcomeDialog(
       h('span', {}, `${T.moves}: ${summary.moves}`),
       h('span', {}, `${T.time}: ${formatTime(summary.seconds)}`)),
     h('div', { class: 'row' },
+      // Only where carrying on means something — 2048 past its 2048 tile.
+      actions.carryOn
+        ? button(T.keepGoing, '▶️', () => { close(); actions.carryOn!(); }, 'blue')
+        : null,
       button(T.playAgain, '🔄', () => { close(); actions.again(); }, 'green'),
       button(T.menu, '🏠', () => { close(); actions.menu(); }, 'ghost')),
   );

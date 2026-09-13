@@ -8,7 +8,7 @@ import { button, clear, h, toast } from './dom';
 import { T } from './i18n';
 import {
   close as closeOverlay, confirmDialog, difficultyDialog, formatTime, htmlDialog,
-  outcomeDialog, settingsDialog,
+  isOpen as isOverlayOpen, outcomeDialog, settingsDialog,
 } from './overlays';
 import { createSound } from './sound';
 
@@ -278,9 +278,15 @@ export function createShell(root: HTMLElement, version: string): void {
     outcome: 'won' | 'lost', summary: RoundSummary,
   ): void {
     window.clearInterval(clockTimer);
+    const carryOn = (): void => {
+      if (!session?.continueRound()) return;
+      clockTimer = window.setInterval(renderStats, 1000);
+      renderStats();
+    };
     setTimeout(() => outcomeDialog(outcome, summary, {
       again: () => start(def, difficulty),
       menu: toMenu,
+      ...(outcome === 'won' && def.continueAfterWin ? { carryOn } : {}),
     }, sound), 500);
   }
 
@@ -309,8 +315,10 @@ export function createShell(root: HTMLElement, version: string): void {
     if (document.hidden) session?.stopClock();
   });
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeOverlay();
-    if (game.hidden) return;
+    if (e.key === 'Escape') { closeOverlay(); return; }
+    // A dialog is in front of the board: its buttons are the only thing the
+    // player is looking at, so the board's shortcuts must not fire behind it.
+    if (game.hidden || isOverlayOpen()) return;
     if (e.key.toLowerCase() === 'h') doHint();
     if (e.key.toLowerCase() === 'z' && (e.ctrlKey || e.metaKey)) doUndo();
   });

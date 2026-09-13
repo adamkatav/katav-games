@@ -92,7 +92,9 @@ export class Session<S> implements ViewHost<S> {
     return Math.floor(this.elapsed + (this.running ? (Date.now() - this.startedAt) / 1000 : 0));
   }
 
-  get canUndo(): boolean { return this.def.canUndo && this.undoStack.length > 0; }
+  get canUndo(): boolean {
+    return this.outcome === 'playing' && this.def.canUndo && this.undoStack.length > 0;
+  }
 
   get bestKey(): string {
     return this.difficulty ? `${this.def.id}:${this.difficulty}` : this.def.id;
@@ -153,8 +155,25 @@ export class Session<S> implements ViewHost<S> {
     this.checkOutcome();
   }
 
+  /**
+   * Carry on after a win the game says can be continued — 2048 past its 2048
+   * tile. Only that: a round that is lost, or one whose game has no such idea,
+   * stays closed.
+   */
+  continueRound(): boolean {
+    if (this.outcome !== 'won' || !this.def.continueAfterWin) return false;
+    this.def.continueAfterWin(this.state);
+    if (this.def.isWon(this.state)) return false;      // the game declined
+    this.outcome = 'playing';
+    this.startClock();
+    this.persist();
+    this.deps.events.onRender(this.state, this);
+    return true;
+  }
+
   /** Used by the hint button: help costs the streak. */
   penaliseForHint(): Hint | null {
+    if (this.outcome !== 'playing') return null;
     const hint = this.def.hint(this.state);
     if (!hint) return null;
     const update = breakStreak(this.score);
@@ -168,6 +187,10 @@ export class Session<S> implements ViewHost<S> {
   }
 
   undo(): boolean {
+    // A finished round stays finished. Undoing past the end used to rewind the
+    // board while `outcome` stayed 'won', leaving a position that looked
+    // playable and refused every move.
+    if (this.outcome !== 'playing') return false;
     const snapshot = this.undoStack.pop();
     if (snapshot === undefined) return false;
     this.state = JSON.parse(snapshot.state) as S;
