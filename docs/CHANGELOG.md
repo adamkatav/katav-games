@@ -8,6 +8,12 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v1.1.0 (2026-10-01)
+
+### Feat
+
+- **cards**: playtest round two — motion, double-click, waste fan, restart
+
 ## v1.0.1 (2026-09-13)
 
 ### Fix
