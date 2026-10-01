@@ -1,7 +1,10 @@
 import type {
   CommitOptions, GameDef, GameView, Hint, Rng, SettingsLike, SoundLike, ViewHost,
 } from './types';
-import { applyScore, breakStreak, newScoreState, stars, winBonus, type ScoreState } from './score';
+import {
+  applyScore, breakStreak, effectiveBase, newScoreState, restartScore, stars, winBonus,
+  type ScoreState,
+} from './score';
 import { createRng, randomSeed } from './rng';
 
 export type Outcome = 'playing' | 'won' | 'lost';
@@ -201,6 +204,22 @@ export class Session<S> implements ViewHost<S> {
     return true;
   }
 
+  /**
+   * Deal the same round again from its first position. The score on screen is
+   * kept (see `restartScore`); moves and time keep counting, so a restart is
+   * never a way to a better star rating. Not undoable — the board it leaves is
+   * gone, which the confirmation dialog says.
+   */
+  restart(): boolean {
+    if (this.outcome !== 'playing') return false;
+    this.state = this.def.create(createRng(this.seed), this.difficulty);
+    this.score = restartScore(this.score, this.def.score(this.state));
+    this.undoStack = [];
+    this.persist();
+    this.deps.events.onRender(this.state, this);
+    return true;
+  }
+
   private persist(): void {
     this.deps.save({
       gameId: this.def.id,
@@ -228,7 +247,7 @@ export class Session<S> implements ViewHost<S> {
         ...this.score,
         bonus: this.score.bonus + winBonus(par, this.moves, this.seconds),
       };
-      this.score.total = this.def.score(this.state) + this.score.bonus;
+      this.score.total = effectiveBase(this.score, this.def.score(this.state)) + this.score.bonus;
     }
 
     const isBest = this.recordBest();

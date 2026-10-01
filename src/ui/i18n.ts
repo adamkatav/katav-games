@@ -10,6 +10,7 @@ export const T = {
   undo: 'ביטול',
   hint: 'רמז',
   newGame: 'משחק חדש',
+  restart: 'מההתחלה',
   settings: 'הגדרות',
   howToPlay: 'איך משחקים',
   resume: 'המשך משחק',
@@ -28,6 +29,8 @@ export const T = {
 
   confirmNewTitle: 'להתחיל משחק חדש?',
   confirmNewBody: 'המשחק הנוכחי יימחק ולא יהיה אפשר לחזור אליו.',
+  confirmRestartTitle: 'להתחיל את המשחק הזה מההתחלה?',
+  confirmRestartBody: 'הלוח יחזור בדיוק למצב שבו התחלתם. הניקוד שצברתם נשמר.',
   yes: 'כן',
   noBack: 'לא, חזרה למשחק',
   close: 'סגירה',

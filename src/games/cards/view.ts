@@ -25,6 +25,10 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
   const slots = new Map<PileId, HTMLElement>();
   const cardEls = new Map<number, HTMLElement>();
+  /** where each card was at the last render, and whether it was face up */
+  const seen = new Map<number, { pile: PileId; up: boolean }>();
+  /** cards the player just moved; they glow gold where they land */
+  let landing: { ids: ReadonlySet<number>; length: number } | null = null;
 
   const layoutSpec = () => spec.layoutOf(host.state);
   const allPiles = () => {
@@ -40,6 +44,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
     board = root.querySelector('.board')!;
     slots.clear();
     cardEls.clear();
+    seen.clear();
 
     for (const pile of allPiles()) {
       const slot = document.createElement('div');
@@ -147,6 +152,9 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
     if (need > fanCap + 1e-6) { fanCap = need; applyGeometry(); }
 
     let z = 1;
+    const landed = landing;
+    landing = null;
+    let order = 0;
 
     for (const pile of allPiles()) {
       const cards = state.piles[pile] ?? [];
@@ -155,10 +163,22 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
         if (!el) return;
         const pos = cardPosition(geometry!, state, pile, i);
         el.style.transform = `translate(${pos.x}px,${pos.y}px)`;
-        el.style.zIndex = String(++z);
         el.style.opacity = '1';
         el.classList.toggle('up', card.up);
         el.classList.remove('selected', 'target');
+
+        const was = seen.get(card.id);
+        seen.set(card.id, { pile, up: card.up });
+        const moved = was !== undefined && was.pile !== pile;
+        // A card in flight rides above every pile, or it slides underneath
+        // the columns to its right on the way and looks like it vanished.
+        el.dataset['z'] = String(++z);
+        el.style.zIndex = String(z + (moved ? 5000 : 0));
+        if (moved && pile !== 'stock') replay(el, 'moving', 260, () => {
+          el.style.zIndex = el.dataset['z'] ?? '';
+        });
+        if (was && !was.up && card.up) replay(el, 'flipping', 320);
+        if (moved && landed?.ids.has(card.id)) glow(el, landed.length, order++);
       });
     }
 
@@ -199,6 +219,35 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
       if (t && !pile.startsWith('c')) cardEls.get(t.id)?.classList.add('target');
       else slots.get(pile)?.classList.add('target');
     }
+  }
+
+  /* ---- motion ------------------------------------------------------------ */
+
+  /** Restart a one-shot CSS animation on a card, then take the class off. */
+  function replay(el: HTMLElement, cls: string, ms: number, done?: () => void): void {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    const timers = (el as HTMLElement & { _fx?: Record<string, number> })._fx ??= {};
+    if (timers[cls] !== undefined) { window.clearTimeout(timers[cls]); }
+    timers[cls] = window.setTimeout(() => {
+      delete timers[cls];
+      el.classList.remove(cls);
+      done?.();
+    }, ms);
+  }
+
+  /**
+   * The gold halo where a move lands. A longer run earns a wider, longer glow,
+   * rippling down the run card by card, so moving a whole series feels like
+   * the bigger deal it is.
+   */
+  function glow(el: HTMLElement, length: number, k: number): void {
+    const n = Math.min(length, 12);
+    el.style.setProperty('--glow', `calc(var(--card-w) * ${(0.10 + 0.035 * n).toFixed(3)})`);
+    el.style.setProperty('--glow-delay', `${150 + k * 35}ms`);
+    el.style.setProperty('--glow-time', `${560 + n * 45}ms`);
+    replay(el, 'landed', 150 + k * 35 + 560 + n * 45 + 50);
   }
 
   /* ---- clearing a column ------------------------------------------------- */
@@ -311,6 +360,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
       const rect = board.getBoundingClientRect();
       const dest = pileAt(e.clientX - rect.left, e.clientY - rect.top);
       selection = null;
+      markLanding(d.from);
       if (dest && attemptMove(host, spec, d.from.pile, d.from.index, dest)) return;
       if (!dest) host.sound.bad();          // dropped on nothing at all
       render(host.state);
@@ -335,20 +385,25 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
   }
 
   function tap(loc: Location): void {
-    // Double-tap sends a card to its foundation. An accelerator only — the
-    // two-tap path below is always available and never requires a double-click.
+    // Double-tap sends a card wherever it fits (see bestTarget). An accelerator
+    // only — the two-tap path below is always available and never requires it.
     const now = Date.now();
     const isDouble = lastTap && lastTap.pile === loc.pile && lastTap.index === loc.index
       && now - lastTap.at < 450;
     lastTap = { pile: loc.pile, index: loc.index, at: now };
 
     const cards = host.state.piles[loc.pile] ?? [];
-    if (isDouble && loc.index === cards.length - 1 && loc.index >= 0) {
-      const card = cards[loc.index]!;
-      const foundation = allPiles().find(
-        (p) => p.startsWith('f') && spec.canDrop(host.state, [card], p, loc.pile),
-      );
-      if (foundation) { lastTap = null; move(loc, foundation); return; }
+    if (isDouble && loc.index >= 0 && loc.pile !== 'stock') {
+      lastTap = null;
+      const from = grabFrom(loc);
+      const to = from && bestTarget(from);
+      if (from && to) { move(from, to); return; }
+      // Saying nothing here would read as a double-click that did not register.
+      host.toast('אין לאן להזיז את הקלף הזה');
+      host.sound.bad();
+      selection = null;
+      render(host.state);
+      return;
     }
 
     if (selection) {
@@ -398,7 +453,53 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
   function move(from: Location, to: PileId): void {
     selection = null;
+    markLanding(from);
     performMove(host, spec, from.pile, from.index, to);
+  }
+
+  function markLanding(from: Location): void {
+    const run = (host.state.piles[from.pile] ?? []).slice(from.index);
+    landing = { ids: new Set(run.map((c) => c.id)), length: run.length };
+  }
+
+  /** The largest legal run that contains the tapped card, as a tap selects it. */
+  function grabFrom(loc: Location): Location | null {
+    const cards = host.state.piles[loc.pile] ?? [];
+    for (let k = loc.index; k < cards.length; k++) {
+      if (spec.canGrab(host.state, loc.pile, k)) return { pile: loc.pile, index: k };
+    }
+    return null;
+  }
+
+  /**
+   * Where a double-click sends a run, as the classic solitaires do: home to a
+   * foundation first, then onto a card in a column (Spider prefers the same
+   * suit), then a free cell for a lone card, and an empty column last.
+   * Moving a whole column into another empty column is no move at all.
+   */
+  function bestTarget(from: Location): PileId | null {
+    const pile = host.state.piles[from.pile] ?? [];
+    const run = pile.slice(from.index);
+    const head = run[0];
+    if (!head) return null;
+    const fits = (p: PileId) => p !== from.pile && spec.canDrop(host.state, run, p, from.pile);
+    const piles = allPiles().filter(fits);
+    const tableau = layoutSpec().tableau;
+
+    const foundation = piles.find((p) => p.startsWith('f'));
+    if (foundation) return foundation;
+
+    const onCards = piles.filter((p) => tableau.includes(p) && (host.state.piles[p]?.length ?? 0) > 0);
+    const sameSuit = onCards.find((p) => topOf(host.state.piles, p)?.suit === head.suit);
+    if (spec.id === 'spider' && sameSuit) return sameSuit;
+    if (onCards[0]) return onCards[0];
+
+    const cell = piles.find((p) => p.startsWith('e'));
+    if (cell) return cell;
+
+    const wholeColumn = from.index === 0 && tableau.includes(from.pile);
+    if (wholeColumn) return null;
+    return piles.find((p) => tableau.includes(p)) ?? null;
   }
 
   /* ---- public ------------------------------------------------------------ */
@@ -413,6 +514,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
       root.innerHTML = '';
       slots.clear();
       cardEls.clear();
+      seen.clear();
     },
     stat: (state) => spec.stat?.(state) ?? null,
     toolbar(): readonly ToolbarButton[] {
@@ -452,7 +554,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
         );
         if (f) {
           move({ pile: p, index: (host.state.piles[p]?.length ?? 1) - 1 }, f);
-          setTimeout(step, 170);
+          setTimeout(step, 110);
           return;
         }
       }

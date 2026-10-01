@@ -26,7 +26,17 @@ export interface ScoreState {
   peak: number;
   /** current streak length */
   streak: number;
+  /**
+   * Set by a restart: the base the player had already reached, so going back to
+   * the deal does not cost the points on screen. Points only grow again past it
+   * — replaying the same moves cannot earn them twice. Absent before a restart.
+   */
+  floor?: number;
 }
+
+/** The base that counts toward the total: the board, or the restart floor. */
+export const effectiveBase = (s: ScoreState, base: number): number =>
+  s.floor !== undefined ? Math.max(base, s.floor) : base;
 
 export const newScoreState = (base = 0): ScoreState => ({
   total: base,
@@ -53,6 +63,7 @@ export function applyScore(prev: ScoreState, base: number): ScoreUpdate {
     bonus: prev.bonus,
     peak: Math.max(prev.peak, base),
     streak: prev.streak,
+    ...(prev.floor !== undefined ? { floor: prev.floor } : {}),
   };
 
   let event: StreakEvent = 'unchanged';
@@ -62,15 +73,32 @@ export function applyScore(prev: ScoreState, base: number): ScoreUpdate {
     const mult = comboMult(next.streak);
     if (mult > 1) next.bonus += Math.round(gain * (mult - 1));
     event = 'advanced';
-  } else if (base < prevBase) {
+  } else if (effectiveBase(prev, base) < prevBase) {
     // Only a move that undoes progress breaks the streak. Setup moves that
     // score nothing are most of good play and must not be punished.
     if (prev.streak > 0) event = 'broken';
     next.streak = 0;
   }
 
-  next.total = base + next.bonus;
+  next.total = effectiveBase(next, base) + next.bonus;
   return { state: next, delta: next.total - prev.total, event };
+}
+
+/**
+ * Back to the start of the same deal without losing the points on screen. The
+ * total holds where it was; `peak` is kept, so the streak bonus still pays only
+ * on progress beyond the best position ever reached in this deal.
+ */
+export function restartScore(prev: ScoreState, base: number): ScoreState {
+  const next: ScoreState = {
+    total: 0,
+    bonus: prev.bonus,
+    peak: Math.max(prev.peak, base),
+    streak: 0,
+    floor: prev.total - prev.bonus,
+  };
+  next.total = effectiveBase(next, base) + next.bonus;
+  return next;
 }
 
 /** Asking for help costs the streak, but only when help was actually given. */

@@ -170,6 +170,9 @@ export function createShell(root: HTMLElement, version: string): void {
     }
 
     bar.append(
+      button(T.restart, '⏮️', () => confirmDialog(
+        T.confirmRestartTitle, T.confirmRestartBody, doRestart,
+      ), 'blue'),
       button(T.newGame, '🔄', () => confirmDialog(
         T.confirmNewTitle, T.confirmNewBody, () => start(def, difficulty),
       ), 'red'),
@@ -263,6 +266,13 @@ export function createShell(root: HTMLElement, version: string): void {
     // nothing useful.
     if ('message' in hint && hint.message) toast(hint.message);
     view?.showHint?.(hint);
+  }
+
+  function doRestart(): void {
+    if (!session?.restart()) return;
+    sound.deal(0);
+    renderStats();
+    syncToolbar();
   }
 
   function toMenu(): void {

@@ -119,7 +119,11 @@ construction rather than patching instances.
   falls. The player should be able to hear how it is going without looking.
 - **Motion explains state,** it does not decorate. Pieces travel to where they went,
   covers flip in 3D, a thing that scored pulses.
-- **Timings:** moves ~0.26s, flips ~0.38s, celebrations ~1.5s, win sequence ~4s.
+- **Timings:** moves ~0.18s, flips ~0.26s, celebrations ~1.5s, win sequence ~4s.
+  The player's playtest asked for faster: slower motion read as a sluggish game.
+- **A move lands with a gold halo,** wider and longer the longer the run moved, so
+  shifting a whole series feels bigger than nudging one card. A card in flight lifts
+  (scales up with a deeper shadow) so the eye can follow it.
 - **Reward in proportion.** A floating `+15` for points; the crest ceremony for a big
   structural achievement; confetti and stars only for winning a round.
 - **Sound is a setting, and it is remembered.**
