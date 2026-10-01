@@ -11,7 +11,8 @@ export interface CardState {
 /** Where each pile sits: top row slots by column, plus the tableau columns. */
 export interface CardLayoutSpec {
   readonly columns: number;
-  readonly top: ReadonlyArray<{ pile: PileId; col: number }>;
+  /** `fan`: show up to that many top cards side by side (Klondike's waste) */
+  readonly top: ReadonlyArray<{ pile: PileId; col: number; fan?: number }>;
   readonly tableau: readonly PileId[];
   /** piles drawn stacked (foundations, free cells, stock) rather than fanned */
   readonly stacked: readonly PileId[];

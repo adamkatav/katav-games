@@ -16,7 +16,11 @@ export interface Geometry {
   boardW: number;
   boardH: number;
   /** pile id -> position and, for tableau piles, its fan offsets */
-  piles: Record<PileId, { x: number; y: number; faceDown: number; faceUp: number }>;
+  piles: Record<PileId, {
+    x: number; y: number; faceDown: number; faceUp: number;
+    /** sideways step for a fanned top pile, signed for direction; 0 if stacked */
+    fanX?: number; fan?: number;
+  }>;
 }
 
 export interface LayoutInput {
@@ -73,8 +77,12 @@ export function computeGeometry(
   const tableauY = cardH + Math.round(gap * 1.7);
 
   const piles: Geometry['piles'] = {};
-  for (const { pile, col } of spec.top) {
+  for (const { pile, col, fan } of spec.top) {
     piles[pile] = { x: x(colX(col)), y: 0, faceDown: 0, faceUp: 0 };
+    // Fans toward the next column, which the layouts that use it leave empty.
+    if (fan && fan > 1) {
+      piles[pile] = { ...piles[pile]!, fan, fanX: Math.round(cardW * 0.3) * (input.rtl ? -1 : 1) };
+    }
   }
 
   // Expand the fan into spare height rather than stranding the board at the top,
@@ -128,6 +136,11 @@ export function cardPosition(
   const g = geometry.piles[pile];
   const cards = state.piles[pile];
   if (!g || !cards) return { x: 0, y: 0 };
+  if (g.fanX && g.fan) {
+    const shown = Math.min(g.fan, cards.length);
+    const k = Math.max(0, index - (cards.length - shown));
+    return { x: g.x + k * g.fanX, y: g.y };
+  }
   if (g.faceDown === 0 && g.faceUp === 0) return { x: g.x, y: g.y };
 
   let y = g.y;

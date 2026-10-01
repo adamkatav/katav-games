@@ -35,7 +35,9 @@ export const klondikeSpec: CardSpec = {
     columns: 7,
     top: [
       { pile: 'stock', col: 0 },
-      { pile: 'waste', col: 1 },
+      // The last three cards drawn stay in view, so the player can see what
+      // went by; only the top one is playable.
+      { pile: 'waste', col: 1, fan: 3 },
       ...FOUNDATIONS.map((pile, i) => ({ pile, col: 3 + i })),
     ],
     tableau: TABLEAU,

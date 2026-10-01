@@ -334,3 +334,108 @@ test('registers a service worker so it works offline', async ({ page }) => {
   });
   expect(registered).toBe(true);
 });
+
+/* ---- playtest round two: motion, double-click, waste fan, restart -------- */
+
+type Card = { id: number; rank: number; suit: number; up: boolean };
+type ShellLike = {
+  session: { state: { piles: Record<string, Card[]> }; score: { total: number } };
+  view: { layout(): void };
+};
+
+/** Replace the Klondike board with the given piles; everything else goes to the stock. */
+const setKlondike = async (page: Page, layout: Record<string, Array<[number, number]>>) => {
+  await page.evaluate((spec) => {
+    const shell = (window as unknown as { __shell: ShellLike }).__shell;
+    const piles = shell.session.state.piles;
+    const pool = Object.values(piles).flat();
+    for (const key of Object.keys(piles)) piles[key] = [];
+    const take = (rank: number, suit: number): Card => {
+      const i = pool.findIndex((c) => c.rank === rank && c.suit === suit);
+      const [c] = pool.splice(i, 1);
+      return { ...c!, up: true };
+    };
+    for (const [pile, cards] of Object.entries(spec)) {
+      piles[pile] = cards.map(([r, s]) => take(r, s));
+    }
+    piles['stock'] = pool.map((c) => ({ ...c, up: false }));
+    shell.view.layout();
+  }, layout);
+  await page.waitForTimeout(300);
+};
+
+const pileIds = (page: Page, pile: string): Promise<number[]> =>
+  page.evaluate((p) => (window as unknown as { __shell: ShellLike }).__shell
+    .session.state.piles[p]!.map((c) => c.id), pile);
+
+// suits: 0 ♠, 1 ♥, 2 ♦, 3 ♣
+test('double-click sends a card wherever it fits, and the landing glows', async ({ page }) => {
+  await start(page, 'klondike');
+  await setKlondike(page, { t0: [[5, 1]], t1: [[6, 0]], waste: [[1, 3]] });
+
+  const [five] = await pileIds(page, 't0');
+  await page.locator(`.card[data-card="${five}"]`).dblclick();
+  await expect(page.locator(`.card[data-card="${five}"]`)).toHaveClass(/landed/);
+  expect(await pileIds(page, 't1')).toContain(five);
+
+  const [ace] = await pileIds(page, 'waste');
+  await page.locator(`.card[data-card="${ace}"]`).dblclick();
+  await page.waitForTimeout(300);
+  expect(await pileIds(page, 'f0')).toEqual([ace]);
+});
+
+test('double-click on a card with nowhere to go says so', async ({ page }) => {
+  await start(page, 'klondike');
+  await setKlondike(page, { t0: [[13, 0]], t1: [[9, 1]] });
+  const [nine] = await pileIds(page, 't1');
+  await page.locator(`.card[data-card="${nine}"]`).dblclick();
+  await expect(page.locator('.toast')).toContainText('אין לאן להזיז');
+});
+
+test('klondike shows the last three drawn cards side by side', async ({ page }) => {
+  await start(page, 'klondike');
+  const stockTop = async () => {
+    const ids = await pileIds(page, 'stock');
+    return page.locator(`.card[data-card="${ids[ids.length - 1]}"]`);
+  };
+  for (let i = 0; i < 4; i++) { await (await stockTop()).click(); await page.waitForTimeout(250); }
+  const waste = await pileIds(page, 'waste');
+  expect(waste).toHaveLength(4);
+  const xs = await Promise.all(waste.map((id) =>
+    page.locator(`.card[data-card="${id}"]`).evaluate((el) => el.getBoundingClientRect().x)));
+  expect(xs[0]).toBeCloseTo(xs[1]!, 0);                 // older cards stack
+  expect(new Set(xs.slice(1).map(Math.round)).size).toBe(3);   // the last three fan out
+});
+
+test('restart deals the same board again and keeps the score', async ({ page }) => {
+  await start(page, 'klondike');
+  const dealt = await page.evaluate(() =>
+    JSON.stringify((window as unknown as { __shell: ShellLike }).__shell.session.state));
+  await page.evaluate(() => {
+    const shell = (window as unknown as { __shell: ShellLike }).__shell;
+    const s = shell.session as unknown as { commit(f: (d: ShellLike['session']['state']) => void): void };
+    // Put an ace home so there is a score worth keeping.
+    s.commit((d) => {
+      const ace = Object.values(d.piles).flat().find((c) => c.rank === 1)!;
+      for (const p of Object.values(d.piles)) {
+        const i = p.indexOf(ace);
+        if (i >= 0) p.splice(i, 1);
+      }
+      d.piles['f0']!.push({ ...ace, up: true });
+    });
+  });
+  const score = await page.evaluate(() =>
+    (window as unknown as { __shell: ShellLike }).__shell.session.score.total);
+  expect(score).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: /מההתחלה/ }).click();
+  await page.getByRole('button', { name: 'כן' }).click();
+  await page.waitForTimeout(400);
+
+  const after = await page.evaluate(() => {
+    const s = (window as unknown as { __shell: ShellLike }).__shell.session;
+    return { state: JSON.stringify(s.state), score: s.score.total };
+  });
+  expect(after.state).toBe(dealt);
+  expect(after.score).toBe(score);
+});
