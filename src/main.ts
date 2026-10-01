@@ -8,5 +8,7 @@ const APP_VERSION = __APP_VERSION__;
 // player mid-game — exactly the surprise this audience should not get.
 registerSW({ immediate: false });
 
+if (__APP_BETA__) document.title = `${document.title} (בטא)`;
+
 const root = document.getElementById('app');
 if (root) createShell(root, APP_VERSION);

@@ -7,7 +7,9 @@ import type { SavedRound } from './engine';
  * every write is allowed to fail silently — never at the cost of the game.
  */
 
-const PREFIX = 'katav';
+// Beta and stable share one origin, so the beta keeps its own saves: a test
+// build must never be able to break the player's real round or best scores.
+const PREFIX = typeof __APP_BETA__ !== 'undefined' && __APP_BETA__ ? 'katav-beta' : 'katav';
 const keys = {
   settings: `${PREFIX}.settings`,
   save: (gameId: string) => `${PREFIX}.save.${gameId}`,

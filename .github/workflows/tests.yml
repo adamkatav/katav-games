@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude-dev]
   pull_request:
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,15 +37,44 @@ jobs:
       - name: End-to-end tests
         run: npx playwright test
 
-      - uses: actions/upload-pages-artifact@v3
-        if: github.ref == 'refs/heads/main'
+  # One Pages site, two channels: main at /katav-games/, claude-dev at
+  # /katav-games/beta/. Either branch moving rebuilds both, so a beta push
+  # never takes the stable site down and vice versa.
+  site:
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, path: stable }
+      - uses: actions/checkout@v4
+        with: { ref: claude-dev, path: beta }
+      - uses: actions/setup-node@v4
         with:
-          path: dist
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: '*/package-lock.json'
+
+      - name: Build stable (main)
+        working-directory: stable
+        run: npm ci && npx vite build
+      - name: Build beta (claude-dev)
+        working-directory: beta
+        run: |
+          npm ci
+          GITHUB_SHA=$(git rev-parse HEAD) BETA=1 npx vite build
+      - run: cp -r beta/dist stable/dist/beta
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: stable/dist
 
   deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    needs: site
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
