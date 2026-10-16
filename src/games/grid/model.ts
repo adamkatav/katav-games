@@ -10,6 +10,12 @@ export interface CellView {
   readonly cls?: string;
   /** multiplier on the default label size, for smaller marks */
   readonly scale?: number;
+  /**
+   * The label in pieces, when parts of it need their own class (a single
+   * Sudoku note coloured on its own). Drawn instead of `text`, which a game
+   * still supplies so the cell's text content stays the same either way.
+   */
+  readonly parts?: readonly { readonly text: string; readonly cls?: string }[];
 }
 
 export interface GridSpec<S> {
@@ -179,7 +185,26 @@ function createGridView<S>(host: ViewHost<S>, spec: GridSpec<S>): GameView<S> {
       const cls = `cell ${view.cls ?? ''}`.trim();
       if (el.className !== cls) el.className = cls;
       const text = view.text ?? '';
-      if (el.textContent !== text) el.textContent = text;
+      const key = view.parts ? JSON.stringify(view.parts) : '';
+      if (el.dataset['parts'] !== key || (!key && el.textContent !== text)) {
+        el.dataset['parts'] = key;
+        if (view.parts) {
+          // One wrapper, because the cell is a flex box: loose pieces would each
+          // become a flex item and line up in a row, losing their line breaks.
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.append(...view.parts.map((p) => {
+            if (!p.cls) return document.createTextNode(p.text);
+            const span = document.createElement('span');
+            span.className = p.cls;
+            span.textContent = p.text;
+            return span;
+          }));
+          el.replaceChildren(label);
+        } else {
+          el.textContent = text;
+        }
+      }
       const scale = view.scale ?? 1;
       const size = `calc(var(--cell) * ${0.52 * scale})`;
       if (el.style.fontSize !== size) el.style.fontSize = size;

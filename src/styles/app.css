@@ -458,8 +458,11 @@ body {
   color: #4f6273; font-weight: 700; line-height: .95; text-align: center;
   white-space: pre; font-variant-numeric: tabular-nums;
   /* letter-spacing also trails each line's last digit; matching left padding recentres the 3x3 */
-  letter-spacing: .38em; padding: 0 0 0 .38em;
+  letter-spacing: .28em; padding: 0 0 0 .28em; overflow: hidden;
 }
+.cell.sud.notes .note-one { color: #e07000; font-weight: 900; }
+.cell.sud.notes .note-bad { color: #d32f2f; font-weight: 900; }
+.cell.sud.notes span { pointer-events: none; }
 .sudoku-pad { grid-template-columns: repeat(5, auto); }
 
 /* 2048 */

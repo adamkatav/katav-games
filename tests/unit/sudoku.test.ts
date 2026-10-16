@@ -130,4 +130,32 @@ describe('sudoku rules', () => {
     const view = sudokuSpec.cell(s, given);
     expect(view.cls).toContain('given');
   });
+
+  it('colours a lone note orange and a note a placed digit rules out red', () => {
+    const s = fresh();
+    const cell = s.puzzle.findIndex((v) => v === 0);
+    const truth = s.solution[cell]!;
+    const ruled = s.puzzle[peersOf(cell).find((p) => s.puzzle[p] !== 0)!]!;
+    const classOf = (d: number) =>
+      sudokuSpec.cell(s, cell).parts!.find((p) => p.text === String(d))!.cls;
+
+    s.pencil[cell] = 1 << (truth - 1);
+    expect(classOf(truth)).toBe('note-one');
+
+    s.pencil[cell] |= 1 << (ruled - 1);
+    expect(classOf(truth)).toBeUndefined();          // two notes: neither is alone
+    expect(classOf(ruled)).toBe('note-bad');
+
+    s.pencil[cell] = 1 << (ruled - 1);
+    expect(classOf(ruled)).toBe('note-bad');         // red outranks orange
+  });
+
+  it('counts the player\'s own digits when ruling out a note', () => {
+    const s = fresh();
+    const [a, b] = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter((i) => s.puzzle[i] === 0);
+    s.entries[a!] = 5;
+    s.pencil[b!] = (1 << 4) | (1 << 0);
+    const parts = sudokuSpec.cell(s, b!).parts!;
+    expect(parts.find((p) => p.text === '5')!.cls).toBe('note-bad');
+  });
 });

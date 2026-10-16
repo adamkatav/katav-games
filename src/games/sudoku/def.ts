@@ -1,7 +1,7 @@
 import type { Difficulty, Hint, Rng, ToolbarButton, ViewHost } from '../../core/types';
 import { createGridGame, type CellView, type GridSpec } from '../grid/model';
 import { generatePuzzle } from './generate';
-import { CELLS, SIZE, conflicts, nextStep, type Grid } from './solver';
+import { CELLS, SIZE, conflicts, nextStep, peersOf, type Grid } from './solver';
 
 export interface SudokuState {
   /** the givens; 0 where the player must fill in */
@@ -85,13 +85,26 @@ export const sudokuSpec: GridSpec<SudokuState> = {
       // Notes sit in a fixed 3x3 keypad layout, each digit in its own slot, so
       // they can be far larger than a wrapped line of up to nine digits, and a
       // mark is found by where it is rather than read off a row.
-      let text = '';
+      // A note that a placed digit already rules out is red; a lone note,
+      // the cell's only candidate, is orange so it stands out as ready to fill.
+      const board = merged(s);
+      const placed = new Set(peersOf(i).map((p) => board[p]));
+      const lone = (marks & (marks - 1)) === 0;
+      const parts: { text: string; cls?: string }[] = [];
       for (let d = 1; d <= SIZE; d++) {
-        text += marks & (1 << (d - 1)) ? String(d) : FIGURE_SPACE;
-        if (d % 3 === 0 && d < SIZE) text += '\n';
+        if (marks & (1 << (d - 1))) {
+          const cls = placed.has(d) ? 'note-bad' : lone ? 'note-one' : undefined;
+          parts.push(cls ? { text: String(d), cls } : { text: String(d) });
+        } else {
+          parts.push({ text: FIGURE_SPACE });
+        }
+        if (d % 3 === 0 && d < SIZE) parts.push({ text: '\n' });
       }
       classes.push('notes');
-      return { text, cls: classes.join(' '), scale: NOTE_SCALE };
+      return {
+        text: parts.map((p) => p.text).join(''), parts,
+        cls: classes.join(' '), scale: NOTE_SCALE,
+      };
     }
     return { cls: classes.join(' ') };
   },
