@@ -23,6 +23,12 @@ const DIFFICULTIES: readonly Difficulty[] = [
 ];
 
 /** Why a cell will not budge. A buzz alone leaves the player guessing. */
+/** Label sizes, as multipliers on the grid's default (half the cell). */
+const DIGIT_SCALE = 1.4;
+const NOTE_SCALE = 0.62;
+/** Same width as a digit, so an empty note slot keeps the 3x3 aligned. */
+const FIGURE_SPACE = '\u2007';
+
 const LOCKED = 'הספרה הזאת הגיעה עם הלוח ואי אפשר לשנות אותה';
 
 const TECHNIQUE_TEXT: Record<string, string> = {
@@ -71,14 +77,21 @@ export const sudokuSpec: GridSpec<SudokuState> = {
     if (bad && !given) classes.push('bad');
     if (boxShade(i)) classes.push('shade');
 
-    if (value !== 0) return { text: String(value), cls: classes.join(' ') };
+    // A digit fills most of its cell: this player reads the board from arm's length.
+    if (value !== 0) return { text: String(value), cls: classes.join(' '), scale: DIGIT_SCALE };
 
     const marks = s.pencil[i]!;
     if (marks !== 0) {
-      const digits: string[] = [];
-      for (let d = 1; d <= SIZE; d++) if (marks & (1 << (d - 1))) digits.push(String(d));
+      // Notes sit in a fixed 3x3 keypad layout, each digit in its own slot, so
+      // they can be far larger than a wrapped line of up to nine digits, and a
+      // mark is found by where it is rather than read off a row.
+      let text = '';
+      for (let d = 1; d <= SIZE; d++) {
+        text += marks & (1 << (d - 1)) ? String(d) : FIGURE_SPACE;
+        if (d % 3 === 0 && d < SIZE) text += '\n';
+      }
       classes.push('notes');
-      return { text: digits.join(' '), cls: classes.join(' '), scale: 0.34 };
+      return { text, cls: classes.join(' '), scale: NOTE_SCALE };
     }
     return { cls: classes.join(' ') };
   },
