@@ -132,6 +132,7 @@ rate, and keep it if it matches the level asked for.
 |---|---|
 | Input | Tap a cell, then tap a big number pad 1–9 — never keyboard-only. |
 | Two actions | Mode switch **✏️ מספר / 📝 טיוטה** for pencil marks. |
+| Notes | **One per cell**, so it can be drawn large: orange, red when a placed digit in its row, column or box rules it out. Nine small marks could not stay readable for this player. |
 | Losing | **There is none.** Sudoku has no loss condition; do not invent one. Wrong entries are simply correctable. |
 | Mistakes | A setting: mark a contradicting entry in red immediately, or stay silent. On by default. |
 | Undo | Full — every entry is undoable. |

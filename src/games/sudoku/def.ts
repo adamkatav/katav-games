@@ -22,13 +22,11 @@ const DIFFICULTIES: readonly Difficulty[] = [
   { id: 'hard', label: 'קשה' },
 ];
 
-/** Why a cell will not budge. A buzz alone leaves the player guessing. */
 /** Label sizes, as multipliers on the grid's default (half the cell). */
 const DIGIT_SCALE = 1.4;
-const NOTE_SCALE = 0.62;
-/** Same width as a digit, so an empty note slot keeps the 3x3 aligned. */
-const FIGURE_SPACE = '\u2007';
+const NOTE_SCALE = 1.05;
 
+/** Why a cell will not budge. A buzz alone leaves the player guessing. */
 const LOCKED = 'הספרה הזאת הגיעה עם הלוח ואי אפשר לשנות אותה';
 
 const TECHNIQUE_TEXT: Record<string, string> = {
@@ -80,31 +78,13 @@ export const sudokuSpec: GridSpec<SudokuState> = {
     // A digit fills most of its cell: this player reads the board from arm's length.
     if (value !== 0) return { text: String(value), cls: classes.join(' '), scale: DIGIT_SCALE };
 
-    const marks = s.pencil[i]!;
-    if (marks !== 0) {
-      // Notes sit in a fixed 3x3 keypad layout, each digit in its own slot, so
-      // they can be far larger than a wrapped line of up to nine digits, and a
-      // mark is found by where it is rather than read off a row.
-      // A note that a placed digit already rules out is red; a lone note,
-      // the cell's only candidate, is orange so it stands out as ready to fill.
+    // A cell holds at most one note, so it can be drawn large: a smaller
+    // orange digit, or red when a placed digit already rules it out.
+    const note = noteOf(s.pencil[i]!);
+    if (note !== 0) {
       const board = merged(s);
-      const placed = new Set(peersOf(i).map((p) => board[p]));
-      const lone = (marks & (marks - 1)) === 0;
-      const parts: { text: string; cls?: string }[] = [];
-      for (let d = 1; d <= SIZE; d++) {
-        if (marks & (1 << (d - 1))) {
-          const cls = placed.has(d) ? 'note-bad' : lone ? 'note-one' : undefined;
-          parts.push(cls ? { text: String(d), cls } : { text: String(d) });
-        } else {
-          parts.push({ text: FIGURE_SPACE });
-        }
-        if (d % 3 === 0 && d < SIZE) parts.push({ text: '\n' });
-      }
-      classes.push('notes');
-      return {
-        text: parts.map((p) => p.text).join(''), parts,
-        cls: classes.join(' '), scale: NOTE_SCALE,
-      };
+      classes.push(peersOf(i).some((p) => board[p] === note) ? 'note bad-note' : 'note');
+      return { text: String(note), cls: classes.join(' '), scale: NOTE_SCALE };
     }
     return { cls: classes.join(' ') };
   },
@@ -204,6 +184,16 @@ export const sudokuSpec: GridSpec<SudokuState> = {
 };
 
 /** Givens and entries as one grid, for conflict checking and hints. */
+/**
+ * The cell's note, 0 for none. Rounds saved before notes were limited to one
+ * may still hold several; the lowest is the one shown, and the next tap
+ * replaces them all.
+ */
+function noteOf(marks: number): number {
+  if (marks === 0) return 0;
+  return Math.log2(marks & -marks) + 1;
+}
+
 function merged(s: SudokuState): Grid {
   const out = s.puzzle.slice();
   for (let i = 0; i < CELLS; i++) if (out[i] === 0) out[i] = s.entries[i]!;
@@ -229,7 +219,9 @@ export function placeDigit(host: ViewHost<SudokuState>, digit: number): void {
   host.commit((d) => {
     if (digit === 0) { d.entries[i] = 0; d.pencil[i] = 0; return; }
     if (d.mode === 'note') {
-      d.pencil[i] = (d.pencil[i] ?? 0) ^ (1 << (digit - 1));  // toggling is its own undo
+      // One note per cell: a new one replaces it, the same one clears it.
+      const bit = 1 << (digit - 1);
+      d.pencil[i] = d.pencil[i] === bit ? 0 : bit;
       return;
     }
     d.entries[i] = d.entries[i] === digit ? 0 : digit;

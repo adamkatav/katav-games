@@ -211,26 +211,31 @@ test('sudoku: tap a cell then a digit, and givens stay locked', async ({ page })
   await expect(page.locator('.cell').nth(givenIndex)).toHaveText(givenText ?? '');
 });
 
-test('sudoku: a full cell of notes keeps its 3x3 and never blocks its neighbour', async ({ page }) => {
+test('sudoku: a cell takes one note, shown orange, red once a placed digit rules it out', async ({ page }) => {
   await start(page, 'sudoku', 'easy');
-  // two empty cells side by side, so the notes would spill into the second
-  const [a, b] = await page.evaluate(() => {
-    const s = (window as unknown as { __shell: { session: { state: { puzzle: number[] } } } })
-      .__shell.session.state;
-    const i = s.puzzle.findIndex((v, k) => v === 0 && k % 9 < 8 && s.puzzle[k + 1] === 0);
-    return [i, i + 1];
+  const { cell, ruled, other } = await page.evaluate(() => {
+    const s = (window as unknown as {
+      __shell: { session: { state: { puzzle: number[]; solution: number[] } } };
+    }).__shell.session.state;
+    const cell = s.puzzle.findIndex((v) => v === 0);
+    const row = Math.floor(cell / 9);
+    const ruled = s.puzzle.slice(row * 9, row * 9 + 9).find((v) => v !== 0)!;
+    return { cell, ruled, other: s.solution[cell]! };
   });
-  await page.locator('.cell').nth(a!).click();
+  const target = page.locator('.cell').nth(cell);
+  const pad = page.locator('.sudoku-pad button');
+
+  await target.click();
   await page.getByText('טיוטה').first().click();
-  for (let d = 0; d < 9; d++) await page.locator('.sudoku-pad button').nth(d).click();
+  await pad.nth(ruled - 1).click();
+  await pad.nth(other - 1).click();
+  await expect(target).toHaveText(String(other));            // replaced, not added
+  await expect(target).toHaveClass(/\bnote\b/);
+  await expect(target).not.toHaveClass(/bad-note/);
 
-  const note = page.locator('.cell').nth(a!).locator('.label');
-  const box = await note.boundingBox();
-  const lineHeight = await note.evaluate((el) => parseFloat(getComputedStyle(el.parentElement!).lineHeight));
-  expect(box!.height).toBeGreaterThan(lineHeight * 2.5);       // three rows, not one
-
-  await page.locator('.cell').nth(b!).click();
-  await expect(page.locator('.cell').nth(b!)).toHaveClass(/\bsel\b/);
+  await pad.nth(ruled - 1).click();
+  await expect(target).toHaveText(String(ruled));
+  await expect(target).toHaveClass(/bad-note/);
 });
 
 /**
