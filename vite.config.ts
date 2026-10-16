@@ -2,14 +2,20 @@ import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Served from https://adamkatav.github.io/katav-games/
-const base = process.env.BASE_PATH ?? '/katav-games/';
+// Served from https://adamkatav.github.io/katav-games/, and the beta channel
+// (built from claude-dev with BETA=1) from .../katav-games/beta/.
+const beta = process.env.BETA === '1';
+const base = process.env.BASE_PATH ?? (beta ? '/katav-games/beta/' : '/katav-games/');
 
-const { version } = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
+const { version: released } = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
+// A beta names the commit it was built from, so two test rounds on the same
+// release number can still be told apart on screen.
+const sha = (process.env.GITHUB_SHA ?? '').slice(0, 7);
+const version = beta ? `${released}-beta${sha ? `.${sha}` : ''}` : released;
 
 export default defineConfig({
   base,
-  define: { __APP_VERSION__: JSON.stringify(version) },
+  define: { __APP_VERSION__: JSON.stringify(version), __APP_BETA__: JSON.stringify(beta) },
   build: {
     target: 'es2022',
     assetsInlineLimit: 4096, // small art inlines; the rest is hashed and precached
@@ -28,10 +34,14 @@ export default defineConfig({
         skipWaiting: false,
         clientsClaim: false,
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The stable site's worker controls every path under it, beta included;
+        // without this it answers /beta/ with the stable game.
+        navigateFallbackDenylist: [/\/beta\//],
       },
       manifest: {
-        name: 'משחקי קלפים',
-        short_name: 'קלפים',
+        id: base,
+        name: beta ? 'משחקי קלפים (בטא)' : 'משחקי קלפים',
+        short_name: beta ? 'קלפים בטא' : 'קלפים',
         lang: 'he',
         dir: 'rtl',
         start_url: base,
