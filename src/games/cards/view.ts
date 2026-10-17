@@ -2,7 +2,7 @@ import type { GameView, Hint, ToolbarButton, ViewHost } from '../../core/types';
 import type { Card, PileId } from './deck';
 import { topOf } from './deck';
 import { BACK_URL, CREST_URL, faceSvg } from './art';
-import { cardPosition, computeGeometry, requiredRatio, type Geometry } from './layout';
+import { cardPosition, computeGeometry, gapRatioFor, requiredRatio, type Geometry } from './layout';
 import type { CardSpec, CardState } from './model';
 import { attemptMove, performMove } from './moves';
 
@@ -102,8 +102,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
 
   /* ---- geometry ---------------------------------------------------------- */
 
-  const gapRatioNow = (): number =>
-    layoutSpec().columns >= 10 && root.clientWidth < 700 ? 0.05 : 0.12;
+  const gapRatioNow = (): number => gapRatioFor(layoutSpec().columns, root.clientWidth);
 
   /** Recompute geometry and place the slots. Does not draw the cards. */
   function applyGeometry(): void {
@@ -116,6 +115,7 @@ export function createCardView(host: ViewHost<CardState>, spec: CardSpec): GameV
       fanCap,
     });
 
+    board.classList.toggle('rtl', host.settings.rtl);
     board.style.setProperty('--card-w', `${geometry.cardW}px`);
     board.style.setProperty('--card-h', `${geometry.cardH}px`);
     board.style.width = `${geometry.boardW}px`;

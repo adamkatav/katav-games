@@ -34,7 +34,12 @@ export interface LayoutInput {
 
 // ratios of card width
 const FAN_DOWN = 0.22, FAN_DOWN_MIN = 0.10, FAN_DOWN_MAX = 0.40;
-const FAN_UP = 0.48, FAN_UP_MIN = 0.34, FAN_UP_MAX = 0.80;
+// The face-up strip shows the index (art.ts, ending ~0.54 widths down) and
+// stops before the court figure at 0.64, so a fanned column reads as a list.
+const FAN_UP = 0.6, FAN_UP_MIN = 0.58, FAN_UP_MAX = 0.62;
+// Only once the cards are already at their smallest: the top half of the rank
+// still reads, and the alternative is a board that scrolls.
+const FAN_UP_FLOOR = 0.34;
 const CARD_RATIO = 1.45;   // height / width
 
 /** The height a column needs, as a multiple of card width, at tightest legible fan. */
@@ -52,14 +57,23 @@ export function requiredRatio(
   return top + deepest + CARD_RATIO;
 }
 
+/**
+ * The gap between columns, as a ratio of card width. Narrow screens get thin
+ * gaps: on a phone every pixel between columns is a pixel off each card.
+ */
+export function gapRatioFor(columns: number, availableW: number): number {
+  if (availableW >= 680) return 0.12;
+  return columns >= 10 ? 0.04 : 0.06;
+}
+
 export function computeGeometry(
   state: CardState, spec: CardLayoutSpec, input: LayoutInput,
 ): Geometry {
   const cols = spec.columns;
-  const gapRatio = cols >= 10 && input.availableW < 680 ? 0.05 : 0.12;
+  const gapRatio = gapRatioFor(cols, input.availableW);
 
   const byWidth = input.availableW / (cols + (cols - 1) * gapRatio);
-  const byHeight = input.availableH / 3.55 / CARD_RATIO;
+  const byHeight = input.availableH / 3.3 / CARD_RATIO;
   // The fan cap is what stops a long column from scrolling the board: bounding
   // card width by the height the deepest column needs shrinks the cards instead.
   const byDepth = input.availableH / input.fanCap;
@@ -112,14 +126,16 @@ export function computeGeometry(
     let height = down * fd + up * fu + cardH;
 
     // Squeeze the face-down slivers first; only then the face-up cards, and
-    // never past the point where the rank in the corner stops being readable.
+    // only to the whole rank, and past that (to half of it) only as a last resort.
     if (height > room && down > 0) {
       const cut = Math.min(height - room, down * (fd - FAN_DOWN_MIN * cardW));
       fd -= cut / down; height -= cut;
     }
-    if (height > room && up > 0) {
-      const cut = Math.min(height - room, up * (fu - FAN_UP_MIN * cardW));
-      fu -= cut / up; height -= cut;
+    for (const floor of [FAN_UP_MIN, FAN_UP_FLOOR]) {
+      if (height > room && up > 0 && fu > floor * cardW) {
+        const cut = Math.min(height - room, up * (fu - floor * cardW));
+        fu -= cut / up; height -= cut;
+      }
     }
 
     piles[pile] = { x: x(colX(c)), y: tableauY, faceDown: fd, faceUp: fu };

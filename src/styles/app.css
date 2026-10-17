@@ -226,6 +226,8 @@ body {
   border: calc(var(--card-w) * .018) solid #d8dee3;
 }
 .card .front svg { display: block; width: 100%; height: 100%; }
+.board .idx-rtl, .board.rtl .idx-ltr { display: none; }
+.board.rtl .idx-rtl { display: inline; }
 .card .back {
   transform: rotateY(180deg);
   background-color: var(--navy); background-size: 100% 100%; background-repeat: no-repeat;
