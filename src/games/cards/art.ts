@@ -34,23 +34,23 @@ export function faceSvg(card: Card): string {
   // (the Klondike waste), which flips with reading direction. Both layouts are
   // drawn and the stylesheet shows one, so a direction change needs no redraw.
   const rank = (x: number, anchor: string) =>
-    `<text x="${x}" y="${INDEX_BASELINE}" font-size="46" font-weight="bold" text-anchor="${anchor}" fill="${colour}"` +
-    `${label.length > 1 ? ' textLength="58" lengthAdjust="spacingAndGlyphs"' : ''}>${label}</text>`;
+    `<text x="${x}" y="${INDEX_BASELINE}" font-size="68" font-weight="bold" text-anchor="${anchor}" fill="${colour}"` +
+    `${label.length > 1 ? ' textLength="68" lengthAdjust="spacingAndGlyphs"' : ''}>${label}</text>`;
   const suit = (x: number, anchor: string) =>
-    `<text x="${x}" y="${INDEX_BASELINE}" font-size="38" text-anchor="${anchor}" fill="${colour}">${glyph}</text>`;
+    `<text x="${x}" y="${INDEX_BASELINE}" font-size="36" text-anchor="${anchor}" fill="${colour}">${glyph}</text>`;
   const index =
-    `<g class="idx-ltr">${rank(5, 'start')}${suit(95, 'end')}</g>` +
-    `<g class="idx-rtl">${rank(95, 'end')}${suit(5, 'start')}</g>`;
+    `<g class="idx-ltr">${rank(3, 'start')}${suit(97, 'end')}</g>` +
+    `<g class="idx-rtl">${rank(97, 'end')}${suit(3, 'start')}</g>`;
 
   const middle = card.rank >= 11
-    ? `<image href="${COURT[card.rank]}" x="6" y="52" width="88" height="90" preserveAspectRatio="xMidYMax meet"/>`
-    : `<text x="50" y="96" font-size="78" text-anchor="middle" dominant-baseline="central" fill="${colour}">${glyph}</text>`;
+    ? `<image href="${COURT[card.rank]}" x="8" y="64" width="84" height="78" preserveAspectRatio="xMidYMax meet"/>`
+    : `<text x="50" y="104" font-size="70" text-anchor="middle" dominant-baseline="central" fill="${colour}">${glyph}</text>`;
 
   return `<svg viewBox="0 0 100 145" xmlns="http://www.w3.org/2000/svg" ` +
     `font-family="Arial,Helvetica,sans-serif">${index}${middle}</svg>`;
 }
 
 /** Where the index text sits: its capitals run from about y=5 to here. */
-const INDEX_BASELINE = 38;
+const INDEX_BASELINE = 54;
 
 export const rankLabel = (r: Rank): string => RANK_LABEL[r]!;
