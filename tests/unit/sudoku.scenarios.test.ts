@@ -120,11 +120,25 @@ const SCENARIOS: readonly SudokuScenario[] = [
     score: 0, moves: 1, sound: 'place',
   },
   {
-    name: 'marks accumulate, and each one toggles off on its own',
+    name: 'a cell holds one note: a new one replaces it',
     given: EMPTY, selected: TOP_LEFT, mode: 'note', pencil: { [TOP_LEFT]: [4] },
-    when: (h) => { h.pad(6); h.pad(4); },
+    when: (h) => { h.pad(6); },
     then: EMPTY, thenPencil: { [TOP_LEFT]: [6] },
-    moves: 2,
+    moves: 1,
+  },
+  {
+    name: 'tapping the same note again clears it',
+    given: EMPTY, selected: TOP_LEFT, mode: 'note', pencil: { [TOP_LEFT]: [4] },
+    when: (h) => { h.pad(4); },
+    then: EMPTY, thenPencil: { [TOP_LEFT]: [] },
+    moves: 1,
+  },
+  {
+    name: 'a note replaces several left by an older save',
+    given: EMPTY, selected: TOP_LEFT, mode: 'note', pencil: { [TOP_LEFT]: [2, 5] },
+    when: (h) => { h.pad(7); },
+    then: EMPTY, thenPencil: { [TOP_LEFT]: [7] },
+    moves: 1,
   },
   {
     name: 'writing a digit clears the marks underneath it',

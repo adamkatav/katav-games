@@ -211,6 +211,33 @@ test('sudoku: tap a cell then a digit, and givens stay locked', async ({ page })
   await expect(page.locator('.cell').nth(givenIndex)).toHaveText(givenText ?? '');
 });
 
+test('sudoku: a cell takes one note, shown orange, red once a placed digit rules it out', async ({ page }) => {
+  await start(page, 'sudoku', 'easy');
+  const { cell, ruled, other } = await page.evaluate(() => {
+    const s = (window as unknown as {
+      __shell: { session: { state: { puzzle: number[]; solution: number[] } } };
+    }).__shell.session.state;
+    const cell = s.puzzle.findIndex((v) => v === 0);
+    const row = Math.floor(cell / 9);
+    const ruled = s.puzzle.slice(row * 9, row * 9 + 9).find((v) => v !== 0)!;
+    return { cell, ruled, other: s.solution[cell]! };
+  });
+  const target = page.locator('.cell').nth(cell);
+  const pad = page.locator('.sudoku-pad button');
+
+  await target.click();
+  await page.getByText('טיוטה').first().click();
+  await pad.nth(ruled - 1).click();
+  await pad.nth(other - 1).click();
+  await expect(target).toHaveText(String(other));            // replaced, not added
+  await expect(target).toHaveClass(/\bnote\b/);
+  await expect(target).not.toHaveClass(/bad-note/);
+
+  await pad.nth(ruled - 1).click();
+  await expect(target).toHaveText(String(ruled));
+  await expect(target).toHaveClass(/bad-note/);
+});
+
 /**
  * A loss has to be readable: which mine went off, and which flags were right.
  * Every mine used to be drawn as the same explosion.
