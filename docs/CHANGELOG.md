@@ -8,6 +8,14 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v1.2.0 (2026-10-17)
+
+### Feat
+
+- **sudoku**: one note per cell, drawn large
+- **sudoku**: colour a lone note orange and a ruled-out note red
+- **sudoku**: enlarge digits and lay notes out as a 3x3
+
 ## v1.1.0 (2026-10-01)
 
 ### Feat
