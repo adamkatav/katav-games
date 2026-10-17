@@ -34,7 +34,9 @@ export interface LayoutInput {
 
 // ratios of card width
 const FAN_DOWN = 0.22, FAN_DOWN_MIN = 0.10, FAN_DOWN_MAX = 0.40;
-const FAN_UP = 0.48, FAN_UP_MIN = 0.34, FAN_UP_MAX = 0.80;
+// The face-up strip shows the index (art.ts, ending ~0.38 widths down) and
+// stops before the court figure at 0.52, so a fanned column reads as a list.
+const FAN_UP = 0.46, FAN_UP_MIN = 0.42, FAN_UP_MAX = 0.50;
 const CARD_RATIO = 1.45;   // height / width
 
 /** The height a column needs, as a multiple of card width, at tightest legible fan. */
@@ -52,14 +54,23 @@ export function requiredRatio(
   return top + deepest + CARD_RATIO;
 }
 
+/**
+ * The gap between columns, as a ratio of card width. Narrow screens get thin
+ * gaps: on a phone every pixel between columns is a pixel off each card.
+ */
+export function gapRatioFor(columns: number, availableW: number): number {
+  if (availableW >= 680) return 0.12;
+  return columns >= 10 ? 0.04 : 0.06;
+}
+
 export function computeGeometry(
   state: CardState, spec: CardLayoutSpec, input: LayoutInput,
 ): Geometry {
   const cols = spec.columns;
-  const gapRatio = cols >= 10 && input.availableW < 680 ? 0.05 : 0.12;
+  const gapRatio = gapRatioFor(cols, input.availableW);
 
   const byWidth = input.availableW / (cols + (cols - 1) * gapRatio);
-  const byHeight = input.availableH / 3.55 / CARD_RATIO;
+  const byHeight = input.availableH / 3.3 / CARD_RATIO;
   // The fan cap is what stops a long column from scrolling the board: bounding
   // card width by the height the deepest column needs shrinks the cards instead.
   const byDepth = input.availableH / input.fanCap;

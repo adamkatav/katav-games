@@ -16,48 +16,41 @@ const RED = '#c8102e';
  *  where only the corner index and the pip change colour. */
 const COURT: Record<number, string> = { 11: jackUrl, 12: queenUrl, 13: kingUrl };
 
-/** Classic pip arrangements: [column 0=left 1=centre 2=right, vertical 0..1]. */
-const PIPS: Record<number, ReadonlyArray<readonly [number, number]>> = {
-  2: [[1, 0], [1, 1]],
-  3: [[1, 0], [1, 0.5], [1, 1]],
-  4: [[0, 0], [2, 0], [0, 1], [2, 1]],
-  5: [[0, 0], [2, 0], [1, 0.5], [0, 1], [2, 1]],
-  6: [[0, 0], [2, 0], [0, 0.5], [2, 0.5], [0, 1], [2, 1]],
-  7: [[0, 0], [2, 0], [1, 0.25], [0, 0.5], [2, 0.5], [0, 1], [2, 1]],
-  8: [[0, 0], [2, 0], [1, 0.25], [0, 0.5], [2, 0.5], [1, 0.75], [0, 1], [2, 1]],
-  9: [[0, 0], [2, 0], [0, 1 / 3], [2, 1 / 3], [1, 0.5], [0, 2 / 3], [2, 2 / 3], [0, 1], [2, 1]],
-  10: [[0, 0], [2, 0], [1, 1 / 6], [0, 1 / 3], [2, 1 / 3], [0, 2 / 3], [2, 2 / 3], [1, 5 / 6], [0, 1], [2, 1]],
-};
-
-const PIP_X = [34, 50, 66] as const;
-const PIP_Y0 = 37, PIP_SPAN = 71;
-
-/** The whole face as one SVG on a 100x145 viewBox, so it scales with the card. */
+/**
+ * The whole face as one SVG on a 100x145 viewBox, so it scales with the card.
+ *
+ * Drawn for reading, not for tradition: one big rank and its suit across the
+ * top, then a single large suit (or the court figure) filling the rest. Pip
+ * patterns made a 7 a field of small symbols to count; this player reads the
+ * number instead. The index sits in the top strip that stays visible when a
+ * column fans, so FAN_UP_MIN in layout.ts has to keep clearing it.
+ */
 export function faceSvg(card: Card): string {
   const colour = isRed(card) ? RED : INK;
   const glyph = SUIT_GLYPH[card.suit];
   const label = RANK_LABEL[card.rank];
 
-  // A large index in both top corners stays readable whichever way a column fans.
-  const index = (x: number) =>
-    `<text x="${x}" y="30" font-size="27" font-weight="bold" text-anchor="middle" fill="${colour}">${label}</text>` +
-    `<text x="${x}" y="50" font-size="21" text-anchor="middle" fill="${colour}">${glyph}</text>`;
+  // The rank goes on the side that stays uncovered when cards fan sideways
+  // (the Klondike waste), which flips with reading direction. Both layouts are
+  // drawn and the stylesheet shows one, so a direction change needs no redraw.
+  const rank = (x: number, anchor: string) =>
+    `<text x="${x}" y="${INDEX_BASELINE}" font-size="46" font-weight="bold" text-anchor="${anchor}" fill="${colour}"` +
+    `${label.length > 1 ? ' textLength="58" lengthAdjust="spacingAndGlyphs"' : ''}>${label}</text>`;
+  const suit = (x: number, anchor: string) =>
+    `<text x="${x}" y="${INDEX_BASELINE}" font-size="38" text-anchor="${anchor}" fill="${colour}">${glyph}</text>`;
+  const index =
+    `<g class="idx-ltr">${rank(5, 'start')}${suit(95, 'end')}</g>` +
+    `<g class="idx-rtl">${rank(95, 'end')}${suit(5, 'start')}</g>`;
 
-  let middle: string;
-  if (card.rank >= 11) {
-    middle = `<image href="${COURT[card.rank]}" x="6" y="50" width="88" height="92" preserveAspectRatio="xMidYMax meet"/>`;
-  } else if (card.rank === 1) {
-    middle = `<text x="50" y="78" font-size="56" text-anchor="middle" dominant-baseline="central" fill="${colour}">${glyph}</text>`;
-  } else {
-    middle = (PIPS[card.rank] ?? []).map(([col, f]) => {
-      const x = PIP_X[col]!, y = PIP_Y0 + f * PIP_SPAN;
-      const rotate = f > 0.5 ? ` transform="rotate(180 ${x} ${y})"` : '';
-      return `<text x="${x}" y="${y}" font-size="23" text-anchor="middle" dominant-baseline="central" fill="${colour}"${rotate}>${glyph}</text>`;
-    }).join('');
-  }
+  const middle = card.rank >= 11
+    ? `<image href="${COURT[card.rank]}" x="6" y="52" width="88" height="90" preserveAspectRatio="xMidYMax meet"/>`
+    : `<text x="50" y="96" font-size="78" text-anchor="middle" dominant-baseline="central" fill="${colour}">${glyph}</text>`;
 
   return `<svg viewBox="0 0 100 145" xmlns="http://www.w3.org/2000/svg" ` +
-    `font-family="Georgia,'Times New Roman',serif">${index(15)}${index(85)}${middle}</svg>`;
+    `font-family="Arial,Helvetica,sans-serif">${index}${middle}</svg>`;
 }
+
+/** Where the index text sits: its capitals run from about y=5 to here. */
+const INDEX_BASELINE = 38;
 
 export const rankLabel = (r: Rank): string => RANK_LABEL[r]!;
