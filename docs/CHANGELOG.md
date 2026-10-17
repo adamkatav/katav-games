@@ -8,6 +8,13 @@ uvx --from commitizen cz bump --yes     # bump version, update this file, tag
 uvx --from commitizen cz changelog      # regenerate without bumping
 ```
 
+## v1.3.0 (2026-10-17)
+
+### Feat
+
+- **cards**: make the rank about half again as large
+- **cards**: big rank and one large suit instead of pip patterns
+
 ## v1.2.0 (2026-10-17)
 
 ### Feat
